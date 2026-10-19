@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// نقش‌ها: ADMIN | MANAGER | HSE | DOCTOR | AUDIOLOGIST | OPTOMETRIST | LAB | EMPLOYER | CONTRACTOR | WORKER
+model User {
+  id           String      @id @default(cuid())
+  username     String      @unique
+  password     String
+  fullName     String
+  role         String
+  phone        String?
+  active       Boolean     @default(true)
+  companyId    String?
+  company      Company?    @relation(fields: [companyId], references: [id])
+  contractorId String?
+  contractor   Contractor? @relation(fields: [contractorId], references: [id])
+  personId     String?
+  createdAt    DateTime    @default(now())
+}
+
+model Company {
+  id          String       @id @default(cuid())
+  name        String
+  nationalId  String?
+  phone       String?
+  address     String?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  users       User[]
+  contractors Contractor[]
+  projects    Project[]
+  cases       Case[]
+}
+
+model Contractor {
+  id        String    @id @default(cuid())
+  name      String
+  companyId String?
+  company   Company?  @relation(fields: [companyId], references: [id])
+  phone     String?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  users     User[]
+  projects  Project[]
+  cases     Case[]
+}
+
+model Project {
+  id           String      @id @default(cuid())
+  name         String
+  companyId    String?
+  company      Company?    @relation(fields: [companyId], references: [id])
+  contractorId String?
+  contractor   Contractor? @relation(fields: [contractorId], references: [id])
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  cases        Case[]
+}
+
+model Person {
+  id                String   @id @default(cuid())
+  nationalId        String   @unique
+  firstName         String
+  lastName          String
+  fatherName        String?
+  gender            String   @default("MALE") // MALE | FEMALE
+  birthYear         String?
+  birthDate         String? // شمسی مثل 1366/05/12
+  maritalStatus     String? // SINGLE | MARRIED
+  childrenCount     Int?
+  education         String?
+  phone             String?
+  insuranceNo       String?
+  militaryStatus    String? // DONE | EXEMPT | PENDING
+  militaryUnit      String? // رشته خدمت
+  militaryExemption String? // نوع معافیت
+  photo             String? // dataURL
+  createdAt         DateTime @default(now())
+  cases             Case[]
+}
+
+// پرونده معاینات
+model Case {
+  id                    String        @id @default(cuid())
+  caseNumber            String        @unique
+  personId              String
+  person                Person        @relation(fields: [personId], references: [id])
+  examType              String // PRE_EMPLOYMENT | PERIODIC | SPECIFIC
+  visitDate             String // شمسی
+  workPlace             String
+  jobTitle              String
+  workUnit              String?
+  companyId             String?
+  company               Company?      @relation(fields: [companyId], references: [id])
+  contractorId          String?
+  contractor            Contractor?   @relation(fields: [contractorId], references: [id])
+  projectId             String?
+  project               Project?      @relation(fields: [projectId], references: [id])
+  groupType             String        @default("DIRECT") // CONTRACTOR | DIRECT | INDEPENDENT
+  // بخش ۹ - نظریه نهایی
+  finalOpinion          String? // FIT | CONDITIONAL | UNFIT | INCOMPLETE
+  finalText             String?
+  finalCondition        String?
+  finalReason           String?
+  finalAdvice           String?
+  finalDoctorName       String?
+  finalDoctorCode       String?
+  finalDate             String?
+  finalSignature        String?
+  workerDeclaration     String? // امضای اطلاع شاغل از نتیجه (dataURL)
+  workerDeclarationName String?
+  completedAt           DateTime?
+  createdBy             String
+  createdByName         String
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  sections              CaseSection[]
+  history               CaseHistory[]
+}
+
+model CaseSection {
+  id                String    @id @default(cuid())
+  caseId            String
+  case              Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  key               String // S2 | S3 | S4 | S5 | S6 | S7A | S7B | S7C | S7D | S8 | S9
+  status            String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | SENT_FOR_REVIEW | NEEDS_CORRECTION | APPROVED | NOT_APPLICABLE
+  data              String    @default("{}")
+  updatedByName     String?
+  submittedAt       DateTime?
+  approvedByName    String?
+  approvedAt        DateTime?
+  approvedSignature String?
+  naReason          String?
+  correctionNote    String?
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([caseId, key])
+}
+
+model CaseHistory {
+  id         String   @id @default(cuid())
+  caseId     String
+  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId     String
+  userName   String
+  action     String
+  sectionKey String?
+  detail     String?
+  createdAt  DateTime @default(now())
+}
