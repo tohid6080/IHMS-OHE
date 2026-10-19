@@ -64,3 +64,4 @@ db/*.db-journal
 tool-results/
 upload/
 agent-ctx/
+AGENTS.md
