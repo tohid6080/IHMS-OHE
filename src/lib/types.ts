@@ -105,9 +105,16 @@ export interface Section5Data {
 }
 
 // ─── بخش ۶: آزمایش‌ها ───
+// ردیف آزمایش تخصصی / واکسیناسیون (مطابق فرم رسمی: نوع، نتیجه، تاریخ انجام)
+export interface SpecialTestRow {
+  type: string
+  result: string
+  date?: string
+}
 export interface Section6Data {
   testDate?: string
   values: Record<string, string>
+  special?: SpecialTestRow[] // حداکثر ۳ ردیف واکسیناسیون/آزمایش تخصصی
   notes?: string
 }
 
@@ -125,6 +132,7 @@ export interface Section7AData {
   fieldLeft?: VisionStatus
   nightRight?: VisionStatus
   nightLeft?: VisionStatus
+  depthVision?: string // دید عمق (ثانیه آرک)
   notes?: string
   technicianName?: string
   signature?: string

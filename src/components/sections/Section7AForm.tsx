@@ -66,6 +66,7 @@ export function Section7AForm({ caseId, section, onSaved }: Props) {
   const [fieldLeft, setFieldLeft] = useState<VisionStatus>(d.fieldLeft || '')
   const [nightRight, setNightRight] = useState<VisionStatus>(d.nightRight || '')
   const [nightLeft, setNightLeft] = useState<VisionStatus>(d.nightLeft || '')
+  const [depthVision, setDepthVision] = useState(d.depthVision || '')
   const [notes, setNotes] = useState(d.notes || '')
   const [technicianName, setTechnicianName] = useState(d.technicianName || '')
   const [signature, setSignature] = useState(d.signature || '')
@@ -91,6 +92,7 @@ export function Section7AForm({ caseId, section, onSaved }: Props) {
     fieldLeft,
     nightRight,
     nightLeft,
+    depthVision: depthVision || undefined,
     notes,
     technicianName,
     signature: signature || undefined,
@@ -142,6 +144,13 @@ export function Section7AForm({ caseId, section, onSaved }: Props) {
             </TableRow>
           </TableBody>
         </Table>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-1.5">
+          <Label>دید عمق (ثانیه آرک)</Label>
+          <Input value={depthVision} onChange={(e) => setDepthVision(e.target.value)} disabled={!editable} dir="ltr" placeholder="مثلاً 40" className="w-32" />
+        </div>
       </div>
 
       <div className="space-y-1.5">

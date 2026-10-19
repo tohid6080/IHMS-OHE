@@ -288,8 +288,8 @@ export const VISION_STATUS_LABELS: Record<string, string> = { NORMAL: 'طبیع�
 // مرکز (قابل ویرایش در تنظیمات)
 export const DEFAULT_CENTER = {
   orgLine1: 'وزارت بهداشت، درمان و آموزش پزشکی',
-  orgLine2: 'مرکز طب کار مهرگان — پرونده پزشکی شاغل',
-  orgLine3: 'پرونده پزشکی شاغل',
+  orgLine2: 'معاونت بهداشت — مرکز سلامت محیط و کار',
+  orgLine3: 'مرکز طب کار مهرگان',
   address: '',
   phone: '',
 }

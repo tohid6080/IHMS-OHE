@@ -296,7 +296,7 @@ export function PrintView() {
 
   const c = detail.case
   const p = c.person
-  const personLine = `نام و نام خانوادگی شاغل: ${p.firstName} ${p.lastName} — کد ملی شاغل: ${toFa(p.nationalId)}`
+  const personLine = `پرونده پزشکی شاغل — نام و نام خانوادگی: ${p.firstName} ${p.lastName} — کد ملی: ${toFa(p.nationalId)} — شماره پرونده: ${toFa(c.caseNumber)}`
 
   // ─── helperهای بخش‌ها ───
   const sec = (key: SectionKey) => detail.sections.find((s) => s.key === key)
@@ -335,6 +335,7 @@ export function PrintView() {
   // متادیتای تأیید بخش‌های دارای مهر و امضا
   const ap3 = secMeta('S3')
   const ap4 = secMeta('S4')
+  const ap5 = secMeta('S5')
   const ap7a = secMeta('S7A')
   const ap7b = secMeta('S7B')
   const ap7c = secMeta('S7C')
@@ -402,6 +403,8 @@ export function PrintView() {
       <div id="print-area" className="mt-4">
         {/* ═══════════ صفحه ۱ — سربرگ + بخش‌های ۱ تا ۳ ═══════════ */}
         <PrintPage draft={draft}>
+          {/* به نام خدا */}
+          <div className="mb-1 text-center text-[11pt] font-bold">«به نام خدا»</div>
           <PersonLine text={personLine} withLogo={false} />
           {draft && (
             <div className={`mb-2 border border-yellow-600 bg-yellow-200 px-2 py-1 text-center text-[10.5pt] font-bold text-yellow-900 ${COLOR}`}>
@@ -409,116 +412,106 @@ export function PrintView() {
             </div>
           )}
 
-          {/* سربرگ مرکز / عنوان / لوگو */}
-          <table className="print-form-table mb-2">
-            <tbody>
-              <tr>
-                <td className="w-[34%] text-center align-middle">
-                  <div className="text-[9.5pt] font-bold leading-5">{center.orgLine1 || DEFAULT_CENTER.orgLine1}</div>
-                  <div className="text-[9.5pt] font-bold leading-5">{center.orgLine2 || DEFAULT_CENTER.orgLine2}</div>
-                  <div className="text-[9.5pt] font-bold leading-5">{center.orgLine3 || DEFAULT_CENTER.orgLine3}</div>
-                </td>
-                <td className="text-center align-middle">
-                  <div className="text-[15pt] font-black">پرونده پزشکی شاغل</div>
-                </td>
-                <td className="w-[16%] text-center align-middle">
-                  <img
-                    src="/images/center-logo.png"
-                    alt="لوگوی مرکز"
-                    width={76}
-                    height={76}
-                    className="mx-auto size-[76px] rounded-full border-2 border-teal-700 bg-white object-contain"
-                  />
-                  <div className="mt-1 text-[9pt] font-bold text-teal-800">طب کار</div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* نوع معاینات + مشخصات پرونده */}
+          {/* سربرگ رسمی — مطابق فرم پیوست: نوع معاینات + تاریخ/شماره‌ها | وزارت + لوگو + عنوان | محل الصاق عکس */}
           <table className="print-form-table mb-2 text-[9.5pt]">
             <tbody>
               <tr>
-                <td className="w-[28%]">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    {EXAM_TYPES.map((t) => (
-                      <TickBox key={t} on={c.examType === t} label={EXAM_TYPE_LABELS[t]} />
-                    ))}
+                <td className="w-[30%] align-middle">
+                  <div className="space-y-1.5">
+                    <div>
+                      <div className="mb-0.5 font-bold">نوع معاینات:</div>
+                      <div className="space-y-0.5 pr-3">
+                        {EXAM_TYPES.map((t) => (
+                          <div key={t}>
+                            <TickBox on={c.examType === t} label={EXAM_TYPE_LABELS[t]} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>تاریخ: <b>{v(c.visitDate)}</b></div>
+                    <div>شماره پرونده: <b>{v(c.caseNumber)}</b></div>
+                    <div>شماره استخدامی شاغل: <b>{v(p.insuranceNo)}</b></div>
                   </div>
                 </td>
-                <td className="whitespace-nowrap">
-                  محل کار / تاریخ: <b>{v(c.workPlace)} | {v(c.visitDate)}</b>
+                <td className="text-center align-middle">
+                  <div className="flex items-center justify-center gap-2">
+                    <img
+                      src="/images/center-logo.png"
+                      alt="لوگوی مرکز"
+                      width={64}
+                      height={64}
+                      className="size-16 shrink-0 rounded-full border-2 border-teal-700 bg-white object-contain"
+                    />
+                    <div className="text-right">
+                      <div className="text-[10pt] font-bold leading-5">{center.orgLine1 || DEFAULT_CENTER.orgLine1}</div>
+                      <div className="text-[9.5pt] leading-5">{center.orgLine2 || DEFAULT_CENTER.orgLine2}</div>
+                      <div className="text-[9.5pt] leading-5">{center.orgLine3 || DEFAULT_CENTER.orgLine3}</div>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-[15pt] font-black">پرونده پزشکی شاغل</div>
                 </td>
-                <td className="whitespace-nowrap">
-                  شماره پرونده: <b>{v(c.caseNumber)}</b>
-                </td>
-                <td className="whitespace-nowrap">
-                  شماره بیمه/استخدام: <b>{v(p.insuranceNo)}</b>
+                <td className="w-[100px] text-center align-middle">
+                  {p.photo ? (
+                    <img
+                      src={p.photo}
+                      alt="عکس پرسنلی شاغل"
+                      width={90}
+                      height={120}
+                      className="mx-auto h-[120px] w-[90px] border border-slate-600 bg-white object-cover"
+                    />
+                  ) : (
+                    <div className="mx-auto flex h-[120px] w-[90px] items-center justify-center border border-slate-600 bg-slate-50 text-[9pt] text-slate-400">محل الصاق عکس</div>
+                  )}
                 </td>
               </tr>
             </tbody>
           </table>
 
-          {/* بخش ۱ + عکس پرسنلی */}
-          <div className="mb-2 flex items-end gap-2">
-            <div className="min-w-0 flex-1">
-              <SectionBar>۱- مشخصات فردی شاغل</SectionBar>
-              <table className="print-form-table text-[9.5pt]">
-                <tbody>
-                  <tr>
-                    <td className="w-[16%] bg-slate-50 font-semibold">نام و نام خانوادگی</td>
-                    <td className="font-bold">{p.firstName} {p.lastName}</td>
-                    <td className="w-[14%] bg-slate-50 font-semibold">کد ملی</td>
-                    <td>{v(p.nationalId)}</td>
-                  </tr>
-                  <tr>
-                    <td className="bg-slate-50 font-semibold">نام پدر</td>
-                    <td>{v(p.fatherName)}</td>
-                    <td className="bg-slate-50 font-semibold">جنسیت</td>
-                    <td>{GENDER_LABELS[p.gender] ?? v(p.gender)}</td>
-                  </tr>
-                  <tr>
-                    <td className="bg-slate-50 font-semibold">وضعیت تأهل</td>
-                    <td>{MARITAL_LABELS[p.maritalStatus ?? ''] ?? v(p.maritalStatus)}</td>
-                    <td className="bg-slate-50 font-semibold">تعداد فرزند</td>
-                    <td>{p.childrenCount != null ? toFa(p.childrenCount) : ''}</td>
-                  </tr>
-                  <tr>
-                    <td className="bg-slate-50 font-semibold">سال تولد</td>
-                    <td>{v(p.birthYear)}</td>
-                    <td className="bg-slate-50 font-semibold">سن</td>
-                    <td>{age !== null ? toFa(age) : ''}</td>
-                  </tr>
-                  <tr>
-                    <td className="bg-slate-50 font-semibold">وضعیت نظام وظیفه</td>
-                    <td colSpan={3}>{military}</td>
-                  </tr>
-                  <tr>
-                    <td className="bg-slate-50 font-semibold">تحصیلات</td>
-                    <td>{v(p.education)}</td>
-                    <td className="bg-slate-50 font-semibold">شماره تماس</td>
-                    <td>{v(p.phone)}</td>
-                  </tr>
-                  <tr>
-                    <td className="bg-slate-50 font-semibold">آدرس محل کار</td>
-                    <td colSpan={3}>{v(c.workPlace)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="w-[90px] shrink-0">
-              {p.photo ? (
-                <img
-                  src={p.photo}
-                  alt="عکس پرسنلی"
-                  width={90}
-                  height={120}
-                  className="h-[120px] w-[90px] border border-slate-600 bg-white object-cover"
-                />
-              ) : (
-                <div className="flex h-[120px] w-[90px] items-center justify-center border border-slate-600 bg-slate-50 text-[9pt] text-slate-400">عکس</div>
-              )}
-            </div>
+          {/* بخش ۱ — مشخصات فردی شاغل */}
+          <div className="mb-2">
+            <SectionBar>۱- مشخصات فردی شاغل</SectionBar>
+            <table className="print-form-table text-[9.5pt]">
+              <tbody>
+                <tr>
+                  <td className="w-[16%] bg-slate-50 font-semibold">نام و نام خانوادگی</td>
+                  <td className="font-bold">{p.firstName} {p.lastName}</td>
+                  <td className="w-[14%] bg-slate-50 font-semibold">کد ملی</td>
+                  <td>{v(p.nationalId)}</td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-50 font-semibold">نام پدر</td>
+                  <td>{v(p.fatherName)}</td>
+                  <td className="bg-slate-50 font-semibold">جنسیت</td>
+                  <td>{GENDER_LABELS[p.gender] ?? v(p.gender)}</td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-50 font-semibold">وضعیت تأهل</td>
+                  <td>{MARITAL_LABELS[p.maritalStatus ?? ''] ?? v(p.maritalStatus)}</td>
+                  <td className="bg-slate-50 font-semibold">تعداد فرزند</td>
+                  <td>{p.childrenCount != null ? toFa(p.childrenCount) : ''}</td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-50 font-semibold">سال تولد</td>
+                  <td>{v(p.birthYear)}</td>
+                  <td className="bg-slate-50 font-semibold">سن</td>
+                  <td>{age !== null ? toFa(age) : ''}</td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-50 font-semibold">وضعیت نظام وظیفه</td>
+                  <td colSpan={3}>{military}</td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-50 font-semibold">تحصیلات</td>
+                  <td>{v(p.education)}</td>
+                  <td className="bg-slate-50 font-semibold">شماره تماس</td>
+                  <td>{v(p.phone)}</td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-50 font-semibold">آدرس محل کار</td>
+                  <td colSpan={3}>{v(c.workPlace)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           {/* بخش ۲ — سوابق شغلی */}
@@ -648,8 +641,9 @@ export function PrintView() {
               </table>
               <div className="mb-2 flex items-center justify-between gap-4 text-[9.5pt]">
                 <span>
-                  امضا و تاریخ ثبت اظهارات شاغل فوق: <b>{dd(s4?.declaredAt)}</b>
+                  تاریخ ثبت اظهارات: <b>{dd(s4?.declaredAt)}</b>
                 </span>
+                <span className="font-semibold">امضا و اثر انگشت شاغل مبنی بر تایید اظهارات فوق:</span>
                 <StampAndSign signature={s4?.declarationSignature} stamp={ap4.stamp} placeholder="امضای شاغل" />
               </div>
             </>
@@ -723,6 +717,20 @@ export function PrintView() {
                     <td className="bg-slate-50 font-semibold">سایر موارد</td>
                     <td colSpan={3}>{v(s5?.systems?.other?.notes) || '—'}</td>
                   </tr>
+                  <tr>
+                    <td className="bg-slate-50 text-right font-semibold" colSpan={4}>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="font-bold">مشخصات پزشک معاینه‌کننده: {v(ap5.name) || '—'}</span>
+                        <span>تاریخ معاینه: <b>{dd(s5?.examDate)}</b></span>
+                        <StampAndSign
+                          signature={ap5.signature}
+                          stamp={ap5.stamp}
+                          name={ap5.name}
+                          placeholder="محل مهر و امضای پزشک معاینه‌کننده"
+                        />
+                      </div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </>
@@ -761,6 +769,32 @@ export function PrintView() {
           ) : (
             <div className="mb-2 border border-dashed border-slate-400 px-2 py-3 text-center text-[10pt] text-slate-400">ثبت نشده</div>
           )}
+
+          {/* آزمایش‌های تخصصی / واکسیناسیون — مطابق فرم رسمی */}
+          {s6?.special && s6.special.some((r) => r.type?.trim() || r.result?.trim()) ? (
+            <table className="print-form-table mb-2 text-[9.5pt]">
+              <thead>
+                <tr className="bg-slate-100 text-center">
+                  <th className="w-[8%]">ردیف</th>
+                  <th>نوع</th>
+                  <th className="w-[34%]">نتیجه</th>
+                  <th className="w-[22%]">تاریخ انجام</th>
+                </tr>
+              </thead>
+              <tbody>
+                {s6.special
+                  .filter((r) => r.type?.trim() || r.result?.trim())
+                  .map((r, i) => (
+                    <tr key={`${i}-${r.type}`}>
+                      <td className="text-center">{toFa(i + 1)}</td>
+                      <td>{v(r.type)}</td>
+                      <td>{v(r.result)}</td>
+                      <td className="text-center">{v(r.date)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          ) : null}
 
           <SectionBar>۷- پاراکلینیک</SectionBar>
 
@@ -804,6 +838,10 @@ export function PrintView() {
                   <td className="bg-slate-50 text-right font-semibold">شب‌کوری</td>
                   <td>{vs(s7a?.nightRight)}</td>
                   <td>{vs(s7a?.nightLeft)}</td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-50 text-right font-semibold">دید عمق (ثانیه آرک)</td>
+                  <td colSpan={2} className="text-right">{v(s7a?.depthVision)}</td>
                 </tr>
                 <tr>
                   <td className="bg-slate-50 text-right font-semibold">توضیحات</td>
