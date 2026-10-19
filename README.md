@@ -52,6 +52,10 @@ npm run dev
 
 برنامه فقط از سمت سرور به دیتابیس وصل می‌شود؛ RLS روی همه جدول‌ها فعال و بدون policy است تا API عمومی Supabase (کلید anon) به داده‌ها دسترسی نداشته باشد.
 
+### اجرای سریع روی GitHub Codespaces
+
+در صفحه مخزن: **Code → Codespaces → Create codespace on main**. دیتابیس Postgres، ساخت جدول‌ها و seed خودکار انجام می‌شود و صفحه ورود روی پورت 3000 باز می‌شود. نام‌کاربری‌ها و رمزها در `db/demo-credentials.json` است. (این حالت فقط برای آزمایش است و برای استفاده واقعی از Supabase استفاده کنید.)
+
 ### استقرار (Vercel)
 
 مخزن را در Vercel وارد کنید و متغیرهای `DATABASE_URL`، `DIRECT_URL` و `AUTH_SECRET` را تنظیم کنید. سپس یک زیردامنه (مثلاً `ohe.ihmsapp.ir`) به آن وصل کنید.
