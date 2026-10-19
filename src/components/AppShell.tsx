@@ -153,8 +153,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <SheetContent side="right" className="w-64 p-0 bg-sidebar">
                 <SheetHeader className="border-b bg-primary text-primary-foreground rounded-none">
                   <SheetTitle className="flex items-center gap-2 text-sm">
-                    <HeartPulse className="size-4" />
-                    سامانه مدیریت معاینات طب کار
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/ihms-logo.svg" alt="IHMS" className="size-6 rounded" />
+                    <span dir="ltr">IHMS-OHE</span>
                   </SheetTitle>
                 </SheetHeader>
                 <NavList items={items} view={view} go={go} onNavigate={() => setMobileOpen(false)} />
@@ -164,11 +165,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* عنوان سامانه */}
           <div className="flex items-center gap-2 min-w-0">
-            <HeartPulse className="size-5 shrink-0" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ihms-logo.svg" alt="IHMS" className="size-8 shrink-0 rounded-md" />
             <div className="min-w-0 leading-tight">
-              <div className="text-sm font-bold truncate">سامانه مدیریت معاینات طب کار</div>
+              <div className="text-sm font-bold truncate" dir="ltr">IHMS-OHE</div>
               <div className="hidden sm:block text-[11px] text-primary-foreground/70">
-                مرکز طب کار مهرگان
+                سامانه مدیریت معاینات طب کار
               </div>
             </div>
           </div>
@@ -255,7 +257,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="hidden lg:flex fixed right-0 top-14 bottom-10 w-56 bg-sidebar border-l flex-col overflow-y-auto scrollbar-thin z-30">
         <NavList items={items} view={view} go={go} />
         <div className="mt-auto p-4 text-[10px] text-muted-foreground text-center">
-          نسخه ۱.۰ © مرکز طب کار مهرگان
+          IHMS-OHE © مرکز طب کار مهرگان
         </div>
       </aside>
 
@@ -267,7 +269,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ─── فوتر ثابت پایین ─── */}
       <footer className="h-10 fixed bottom-0 left-0 right-0 lg:right-56 z-30 bg-card border-t text-xs text-muted-foreground flex items-center justify-center gap-2">
         <HeartPulse className="size-3.5 text-teal-600" />
-        سامانه مدیریت معاینات طب کار — نسخه ۱.۰
+        IHMS-OHE — سامانه مدیریت معاینات طب کار
       </footer>
     </div>
   )

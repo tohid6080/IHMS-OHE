@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -55,3 +56,11 @@ server.log
 # فایل‌های محرمانه محلی
 worklog.md
 db/demo-credentials.json
+
+# محلی/غیرمرتبط
+db/*.db
+db/*.db-journal
+.zscripts/*.pid
+tool-results/
+upload/
+agent-ctx/
