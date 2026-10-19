@@ -1,0 +1,647 @@
+     1→   851→                <tbody>
+     2→   852→                  <AudioFreqRow label="راست — هوایی (AC)" row={s7b?.right?.ac} srt={s7b?.srtRight} sds={s7b?.sdsRight} interp={s7b?.interpretationRight} />
+     3→   853→                  <AudioFreqRow label="راست — استخوانی (BC)" row={s7b?.right?.bc} />
+     4→   854→                  <AudioFreqRow label="چپ — هوایی (AC)" row={s7b?.left?.ac} srt={s7b?.srtLeft} sds={s7b?.sdsLeft} interp={s7b?.interpretationLeft} />
+     5→   855→                  <AudioFreqRow label="چپ — استخوانی (BC)" row={s7b?.left?.bc} />
+     6→   856→                </tbody>
+     7→   857→              </table>
+     8→   858→              <table className="print-form-table mb-2 text-[9.5pt]">
+     9→   859→                <tbody>
+    10→   860→                  <tr>
+    11→   861→                    <td className="w-[18%] bg-slate-50 font-semibold">پرده گوش راست</td>
+    12→   862→                    <td>{dd(s7b?.tympanicRight)}</td>
+    13→   863→                    <td className="w-[18%] bg-slate-50 font-semibold">پرده گوش چپ</td>
+    14→   864→                    <td>{dd(s7b?.tympanicLeft)}</td>
+    15→   865→                  </tr>
+    16→   866→                  <tr>
+    17→   867→                    <td className="bg-slate-50 font-semibold">مجرای گوش</td>
+    18→   868→                    <td>{dd(s7b?.canalEar)}</td>
+    19→   869→                    <td className="bg-slate-50 font-semibold">بیماری گوش</td>
+    20→   870→                    <td>{dd(s7b?.earDisease)}</td>
+    21→   871→                  </tr>
+    22→   872→                  <tr>
+    23→   873→                    <td className="bg-slate-50 font-semibold">وزوز گوش</td>
+    24→   874→                    <td>{dd(s7b?.tinnitus)}</td>
+    25→   875→                    <td className="bg-slate-50 font-semibold">نویز شنوایی / سابقه کار با صدا</td>
+    26→   876→                    <td>{dd(s7b?.noiseHistory)}</td>
+    27→   877→                  </tr>
+    28→   878→                  <tr>
+    29→   879→                    <td className="bg-slate-50 font-semibold">تروما</td>
+    30→   880→                    <td>{dd(s7b?.earTrauma)}</td>
+    31→   881→                    <td className="bg-slate-50 font-semibold">سرگیجه</td>
+    32→   882→                    <td>{dd(s7b?.dizziness)}</td>
+    33→   883→                  </tr>
+    34→   884→                  <tr>
+    35→   885→                    <td className="bg-slate-50 font-semibold">توضیحات بیشتر</td>
+    36→   886→                    <td colSpan={3}>{v(s7b?.moreNotes) || '—'}</td>
+    37→   887→                  </tr>
+    38→   888→                  <tr>
+    39→   889→                    <td className="bg-slate-50 font-semibold">نام ادیولوژیست</td>
+    40→   890→                    <td colSpan={3}>
+    41→   891→                      <div className="flex items-center justify-between gap-4">
+    42→   892→                        <b>{v(s7b?.audiologistName) || '—'}</b>
+    43→   893→                        <StampAndSign
+    44→   894→                          signature={s7b?.signature ?? ap7b.signature}
+    45→   895→                          stamp={ap7b.stamp}
+    46→   896→                          placeholder="محل امضا"
+    47→   897→                        />
+    48→   898→                      </div>
+    49→   899→                    </td>
+    50→   900→                  </tr>
+    51→   901→                </tbody>
+    52→   902→              </table>
+    53→   903→            </>
+    54→   904→          )}
+    55→   905→
+    56→   906→          {/* ج) اسپیرومتری */}
+    57→   907→          <div className="mb-1 text-[10pt] font-bold">
+    58→   908→            ج) اسپیرومتری{s7c?.testDate ? ` — تاریخ: ${toFa(s7c.testDate)}` : ''}
+    59→   909→          </div>
+    60→   910→          {isRestricted('S7C') ? (
+    61→   911→            <RestrictedTable cols={4} />
+    62→   912→          ) : (
+    63→   913→            <table className="print-form-table mb-2 text-[9.5pt]">
+    64→   914→              <tbody>
+    65→   915→                <tr>
+    66→   916→                  <td className="w-[18%] bg-slate-50 font-semibold">FEV1 (مقدار / درصد)</td>
+    67→   917→                  <td>
+    68→   918→                    {v(s7c?.fev1Value)}
+    69→   919→                    {s7c?.fev1Percent ? ` - ${toFa(s7c.fev1Percent)}%` : ''}
+    70→   920→                  </td>
+    71→   921→                  <td className="w-[18%] bg-slate-50 font-semibold">FVC (مقدار / درصد)</td>
+    72→   922→                  <td>
+    73→   923→                    {v(s7c?.fvcValue)}
+    74→   924→                    {s7c?.fvcPercent ? ` - ${toFa(s7c.fvcPercent)}%` : ''}
+    75→   925→                  </td>
+    76→   926→                </tr>
+    77→   927→                <tr>
+    78→   928→                  <td className="bg-slate-50 font-semibold">FEV1/FVC (%)</td>
+    79→   929→                  <td>{v(s7c?.fev1Fvc)}</td>
+    80→   930→                  <td className="bg-slate-50 font-semibold">FEF</td>
+    81→   931→                  <td>{v(s7c?.fef)}</td>
+    82→   932→                </tr>
+    83→   933→                <tr>
+    84→   934→                  <td className="bg-slate-50 font-semibold">PEF</td>
+    85→   935→                  <td>{v(s7c?.pef)}</td>
+    86→   936→                  <td className="bg-slate-50 font-semibold">VEXT</td>
+    87→   937→                  <td>{v(s7c?.vext)}</td>
+    88→   938→                </tr>
+    89→   939→                <tr>
+    90→   940→                  <td className="bg-slate-50 font-semibold">تفصیر</td>
+    91→   941→                  <td colSpan={3}>{v(s7c?.interpretation) || '—'}</td>
+    92→   942→                </tr>
+    93→   943→                <tr>
+    94→   944→                  <td className="bg-slate-50 font-semibold">امضا</td>
+    95→   945→                  <td colSpan={3}>
+    96→   946→                    <div className="flex items-center justify-between gap-4">
+    97→   947→                      <span>امضا: {v(s7c?.technicianName) || '—'}</span>
+    98→   948→                      <StampAndSign
+    99→   949→                        signature={s7c?.signature ?? ap7c.signature}
+   100→   950→                        stamp={ap7c.stamp}
+   101→   951→                        placeholder="محل امضا"
+   102→   952→                      />
+   103→   953→                    </div>
+   104→   954→                  </td>
+   105→   955→                </tr>
+   106→   956→              </tbody>
+   107→   957→            </table>
+   108→   958→          )}
+   109→   959→
+   110→   960→          {/* د) سایر اقدامات */}
+   111→   961→          <div className="mb-1 text-[10pt] font-bold">د) سایر اقدامات</div>
+   112→   962→          {isRestricted('S7D') ? (
+   113→   963→            <RestrictedTable cols={2} />
+   114→   964→          ) : (
+   115→   965→            <table className="print-form-table mb-2 text-[9.5pt]">
+   116→   966→              <tbody>
+   117→   967→                <tr>
+   118→   968→                  <td className="w-[22%] bg-slate-50 font-semibold">بافت‌های CXR (P-A)</td>
+   119→   969→                  <td>
+   120→   970→                    {dd(s7d?.cxr)}
+   121→   971→                    {s7d?.cxrDate ? ` (${toFa(s7d.cxrDate)})` : ''}
+   122→   972→                  </td>
+   123→   973→                </tr>
+   124→   974→                <tr>
+   125→   975→                  <td className="bg-slate-50 font-semibold">نوار قلب (ECG)</td>
+   126→   976→                  <td>
+   127→   977→                    {dd(s7d?.ecg)}
+   128→   978→                    {s7d?.ecgDate ? ` (${toFa(s7d.ecgDate)})` : ''}
+   129→   979→                  </td>
+   130→   980→                </tr>
+   131→   981→                <tr>
+   132→   982→                  <td className="bg-slate-50 font-semibold">سایر موارد</td>
+   133→   983→                  <td>{v(s7d?.others) || '—'}</td>
+   134→   984→                </tr>
+   135→   985→              </tbody>
+   136→   986→            </table>
+   137→   987→          )}
+   138→   988→        </PrintPage>
+   139→   989→
+   140→   990→        {/* ═══════════ صفحه ۴ — بخش‌های ۸ و ۹ ═══════════ */}
+   141→   991→        <PrintPage draft={draft}>
+   142→   992→          <PersonLine text={personLine} />
+   143→   993→
+   144→   994→          <SectionBar>۸- ثبت مشاوره‌ها و نتایج ارجاع‌ها</SectionBar>
+   145→   995→          <table className="print-form-table mb-1 text-[9.5pt]">
+   146→   996→            <thead>
+   147→   997→              <tr className="bg-slate-100 text-center">
+   148→   998→                <th className="w-[13%]">تاریخ ارجاع</th>
+   149→   999→                <th>علت ارجاع</th>
+   150→  1000→                <th className="w-[18%]">نوع تخصص</th>
+   151→  1001→                <th className="w-[28%]">نتیجه ارجاع</th>
+   152→  1002→              </tr>
+   153→  1003→            </thead>
+   154→  1004→            <tbody>
+   155→  1005→              {refs.length ? (
+   156→  1006→                refs.map((r) => (
+   157→  1007→                  <tr key={r.id}>
+   158→  1008→                    <td className="text-center">{v(r.date)}</td>
+   159→  1009→                    <td>{r.reason}</td>
+   160→  1010→                    <td>{r.specialty}</td>
+   161→  1011→                    <td>{r.resolved && r.result ? r.result : 'در انتظار تعیین تکلیف'}</td>
+   162→  1012→                  </tr>
+   163→  1013→                ))
+   164→  1014→              ) : (
+   165→  1015→                <tr>
+   166→  1016→                  <td colSpan={4} className="text-center text-slate-400">
+   167→  1017→                    موردی ثبت نشده است
+   168→  1018→                  </td>
+   169→  1019→                </tr>
+   170→  1020→              )}
+   171→  1021→              {v(s8?.note) ? (
+   172→  1022→                <tr>
+   173→  1023→                  <td colSpan={4}>
+   174→  1024→                    <b>توضیحات:</b> {v(s8?.note)}
+   175→  1025→                  </td>
+   176→  1026→                </tr>
+   177→  1027→              ) : null}
+   178→  1028→            </tbody>
+   179→  1029→          </table>
+   180→  1030→          <div className="mb-2 text-[8.5pt] text-slate-600">
+   181→  1031→            تذکر: نتیجه هر مشاوره / ارجاع تخصصی باید توسط پزشک معالج ثبت و تعیین تکلیف شود؛ ارجاع بدون نتیجه، مانع صدور نظریه نهایی قطعی است.
+   182→  1032→          </div>
+   183→  1033→
+   184→  1034→          <SectionBar>۹- نظریه نهایی پزشک متخصص طب کار / سلامت شاغل در خصوص کار شاغل</SectionBar>
+   185→  1035→          <table className="print-form-table mb-2 text-[9.5pt]">
+   186→  1036→            <tbody>
+   187→  1037→              <tr>
+   188→  1038→                <td className="w-[5%] text-center align-middle font-bold">{op === 'FIT' ? '✓' : ''}</td>
+   189→  1039→                <td>
+   190→  1040→                  <b>بلامانع</b>
+   191→  1041→                  {op === 'FIT' && c.finalText ? <>: {c.finalText}</> : null}
+   192→  1042→                </td>
+   193→  1043→              </tr>
+   194→  1044→              <tr>
+   195→  1045→                <td className="text-center align-middle font-bold">{op === 'CONDITIONAL' ? '✓' : ''}</td>
+   196→  1046→                <td>
+   197→  1047→                  <b>مشروط</b>
+   198→  1048→                  {op === 'CONDITIONAL' && c.finalCondition ? <>: {c.finalCondition}</> : null}
+   199→  1049→                </td>
+   200→  1050→              </tr>
+   201→  1051→              <tr>
+   202→  1052→                <td className="text-center align-middle font-bold">{op === 'UNFIT' ? '✓' : ''}</td>
+   203→  1053→                <td>
+   204→  1054→                  <b>عدم صلاحیت / عدم تناسب پزشکی جهت انجام شغل مورد نظر</b>
+   205→  1055→                  {op === 'UNFIT' && c.finalReason ? <>: {c.finalReason}</> : null}
+   206→  1056→                </td>
+   207→  1057→              </tr>
+   208→  1058→              <tr>
+   209→  1059→                <td className="text-center align-middle font-bold">{op === 'INCOMPLETE' ? '✓' : ''}</td>
+   210→  1060→                <td>
+   211→  1061→                  <b>پرونده ناتمام</b>
+   212→  1062→                  {op === 'INCOMPLETE' && c.finalReason ? <>: {c.finalReason}</> : null}
+   213→  1063→                </td>
+   214→  1064→              </tr>
+   215→  1065→              <tr>
+   216→  1066→                <td colSpan={2}>
+   217→  1067→                  <b>توصیه‌های پزشکی:</b> {v(c.finalAdvice) || '—'}
+   218→  1068→                </td>
+   219→  1069→              </tr>
+   220→  1070→            </tbody>
+   221→  1071→          </table>
+   222→  1072→          <table className="print-form-table mb-2 text-[9.5pt]">
+   223→  1073→            <tbody>
+   224→  1074→              <tr>
+   225→  1075→                <td className="w-[20%] bg-slate-50 font-semibold">نام پزشک متخصص طب کار</td>
+   226→  1076→                <td className="font-bold">{v(c.finalDoctorName)}</td>
+   227→  1077→                <td className="w-[18%] bg-slate-50 font-semibold">کد معاینات سلامت شغلی</td>
+   228→  1078→                <td>{v(c.finalDoctorCode)}</td>
+   229→  1079→              </tr>
+   230→  1080→              <tr>
+   231→  1081→                <td className="bg-slate-50 font-semibold">تاریخ</td>
+   232→  1082→                <td>{v(c.finalDate)}</td>
+   233→  1083→                <td className="bg-slate-50 font-semibold">مهر و امضا</td>
+   234→  1084→                <td className="h-16 text-center align-middle">
+   235→  1085→                  <StampAndSign
+   236→  1086→                    signature={c.finalSignature}
+   237→  1087→                    stamp={c.finalStamp}
+   238→  1088→                    name={c.finalDoctorName}
+   239→  1089→                    placeholder="مهر و امضای پزشک"
+   240→  1090→                  />
+   241→  1091→                </td>
+   242→  1092→              </tr>
+   243→  1093→            </tbody>
+   244→  1094→          </table>
+   245→  1095→
+   246→  1096→          {/* اظهارنامه شاغل */}
+   247→  1097→          <div className="border border-slate-600 p-2 text-[9.5pt]">
+   248→  1098→            <p className="mb-2 leading-6">
+   249→  1099→              کلید مندرجات پرونده را مطالعه نموده و توضیحات و شروط به من اعلام شد. عواقب بروز هرگونه مشکل ناشی از عدم رعایت موارد فوق را به عهده می‌گیرم.
+   250→  1100→            </p>
+   251→  1101→            <div className="flex items-end justify-between gap-4">
+   252→  1102→              <span>
+   253→  1103→                نام و امضای شاغل: <b>{v(c.workerDeclarationName) || `${p.firstName} ${p.lastName}`}</b>
+   254→  1104→              </span>
+   255→  1105→              <SignOrLine src={c.workerDeclaration} alt="امضای شاغل" placeholder="امضای شاغل" />
+   256→  1106→            </div>
+   257→  1107→          </div>
+   258→  1108→        </PrintPage>
+   259→  1109→
+   260→  1110→        {/* ═══════════ صفحه ۵ — ادیوگرام ═══════════ */}
+   261→  1111→        <PrintPage draft={draft}>
+   262→  1112→          <PersonLine text={personLine} />
+   263→  1113→          <SectionBar>ادیوگرام</SectionBar>
+   264→  1114→          {isRestricted('S7B') ? (
+   265→  1115→            <RestrictedTable cols={4} />
+   266→  1116→          ) : (
+   267→  1117→            <>
+   268→  1118→              <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-[9.5pt]">
+   269→  1119→                <span>
+   270→  1120→                  تاریخ آزمایش: <b>{dd(s7b?.testDate)}</b>
+   271→  1121→                </span>
+   272→  1122→                <span>
+   273→  1123→                  نام ادیولوژیست: <b>{v(s7b?.audiologistName) || '—'}</b>
+   274→  1124→                </span>
+   275→  1125→              </div>
+   276→  1126→              <AudiogramChart compact right={s7b?.right ?? { ac: {}, bc: {} }} left={s7b?.left ?? { ac: {}, bc: {} }} />
+   277→  1127→              <table className="print-form-table mt-2 text-[9.5pt]">
+   278→  1128→                <tbody>
+   279→  1129→                  <tr>
+   280→  1130→                    <td className="w-[16%] bg-slate-50 font-semibold">تفصیر گوش راست</td>
+   281→  1131→                    <td>{dd(s7b?.interpretationRight)}</td>
+   282→  1132→                    <td className="w-[16%] bg-slate-50 font-semibold">تفصیر گوش چپ</td>
+   283→  1133→                    <td>{dd(s7b?.interpretationLeft)}</td>
+   284→  1134→                  </tr>
+   285→  1135→                  <tr>
+   286→  1136→                    <td className="bg-slate-50 font-semibold">پرده گوش راست</td>
+   287→  1137→                    <td>{dd(s7b?.tympanicRight)}</td>
+   288→  1138→                    <td className="bg-slate-50 font-semibold">پرده گوش چپ</td>
+   289→  1139→                    <td>{dd(s7b?.tympanicLeft)}</td>
+   290→  1140→                  </tr>
+   291→  1141→                  <tr>
+   292→  1142→                    <td className="bg-slate-50 font-semibold">مجرای گوش</td>
+   293→  1143→                    <td>{dd(s7b?.canalEar)}</td>
+   294→  1144→                    <td className="bg-slate-50 font-semibold">بیماری گوش</td>
+   295→  1145→                    <td>{dd(s7b?.earDisease)}</td>
+   296→  1146→                  </tr>
+   297→  1147→                  <tr>
+   298→  1148→                    <td className="bg-slate-50 font-semibold">وزوز گوش</td>
+   299→  1149→                    <td>{dd(s7b?.tinnitus)}</td>
+   300→  1150→                    <td className="bg-slate-50 font-semibold">نویز شنوایی / سابقه کار با صدا</td>
+   301→  1151→                    <td>{dd(s7b?.noiseHistory)}</td>
+   302→  1152→                  </tr>
+   303→  1153→                  <tr>
+   304→  1154→                    <td className="bg-slate-50 font-semibold">تروما</td>
+   305→  1155→                    <td>{dd(s7b?.earTrauma)}</td>
+   306→  1156→                    <td className="bg-slate-50 font-semibold">سرگیجه</td>
+   307→  1157→                    <td>{dd(s7b?.dizziness)}</td>
+   308→  1158→                  </tr>
+   309→  1159→                  <tr>
+   310→  1160→                    <td className="bg-slate-50 font-semibold">توضیحات بیشتر</td>
+   311→  1161→                    <td colSpan={3}>{v(s7b?.moreNotes) || '—'}</td>
+   312→  1162→                  </tr>
+   313→  1163→                </tbody>
+   314→  1164→              </table>
+   315→  1165→              {!has('S7B') ? <div className="mt-1 text-center text-[9.5pt] text-slate-400">ادیوگرامی ثبت نشده است</div> : null}
+   316→  1166→            </>
+   317→  1167→          )}
+   318→  1168→        </PrintPage>
+   319→  1169→
+   320→  1170→        {/* ═══════════ صفحه ۶ — خلاصه نتایج معاینات پزشکی ═══════════ */}
+   321→  1171→        <PrintPage draft={draft}>
+   322→  1172→          <PersonLine text={personLine} />
+   323→  1173→          <SectionBar>خلاصه نتایج معاینات پزشکی</SectionBar>
+   324→  1174→
+   325→  1175→          {/* سربرگ کوچک */}
+   326→  1176→          <table className="print-form-table mb-2 text-[9pt]">
+   327→  1177→            <tbody>
+   328→  1178→              <tr>
+   329→  1179→                <td className="w-[14%] bg-slate-50 font-semibold">نوع معاینات</td>
+   330→  1180→                <td colSpan={3}>
+   331→  1181→                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+   332→  1182→                    {EXAM_TYPES.map((t) => (
+   333→  1183→                      <TickBox key={t} on={c.examType === t} label={EXAM_TYPE_LABELS[t]} />
+   334→  1184→                    ))}
+   335→  1185→                  </div>
+   336→  1186→                </td>
+   337→  1187→              </tr>
+   338→  1188→              <tr>
+   339→  1189→                <td className="bg-slate-50 font-semibold">تاریخ</td>
+   340→  1190→                <td>{v(c.visitDate)}</td>
+   341→  1191→                <td className="w-[14%] bg-slate-50 font-semibold">کد ملی</td>
+   342→  1192→                <td>{v(p.nationalId)}</td>
+   343→  1193→              </tr>
+   344→  1194→              <tr>
+   345→  1195→                <td className="bg-slate-50 font-semibold">نام و نام خانوادگی</td>
+   346→  1196→                <td className="font-bold">{p.firstName} {p.lastName}</td>
+   347→  1197→                <td className="bg-slate-50 font-semibold">نام پدر</td>
+   348→  1198→                <td>{v(p.fatherName)}</td>
+   349→  1199→              </tr>
+   350→  1200→              <tr>
+   351→  1201→                <td className="bg-slate-50 font-semibold">جنسیت</td>
+   352→  1202→                <td>{GENDER_LABELS[p.gender] ?? v(p.gender)}</td>
+   353→  1203→                <td className="bg-slate-50 font-semibold">شماره همراه</td>
+   354→  1204→                <td>{v(p.phone)}</td>
+   355→  1205→              </tr>
+   356→  1206→              <tr>
+   357→  1207→                <td className="bg-slate-50 font-semibold">وضعیت تأهل</td>
+   358→  1208→                <td>{MARITAL_LABELS[p.maritalStatus ?? ''] ?? v(p.maritalStatus)}</td>
+   359→  1209→                <td className="bg-slate-50 font-semibold">تعداد فرزند</td>
+   360→  1210→                <td>{p.childrenCount != null ? toFa(p.childrenCount) : ''}</td>
+   361→  1211→              </tr>
+   362→  1212→              <tr>
+   363→  1213→                <td className="bg-slate-50 font-semibold">سال تولد</td>
+   364→  1214→                <td>{v(p.birthYear)}</td>
+   365→  1215→                <td className="bg-slate-50 font-semibold">سن</td>
+   366→  1216→                <td>{age !== null ? toFa(age) : ''}</td>
+   367→  1217→              </tr>
+   368→  1218→              <tr>
+   369→  1219→                <td className="bg-slate-50 font-semibold">واحد کاری</td>
+   370→  1220→                <td>{v(c.workUnit)}</td>
+   371→  1221→                <td className="bg-slate-50 font-semibold">عنوان شغل</td>
+   372→  1222→                <td>{v(c.jobTitle)}</td>
+   373→  1223→              </tr>
+   374→  1224→            </tbody>
+   375→  1225→          </table>
+   376→  1226→
+   377→  1227→          {/* مشخصات فیزیولوژیک */}
+   378→  1228→          <div className="mb-1 text-[10pt] font-bold">مشخصات فیزیولوژیک</div>
+   379→  1229→          {isRestricted('S5') ? (
+   380→  1230→            <RestrictedTable cols={5} />
+   381→  1231→          ) : (
+   382→  1232→            <table className="print-form-table mb-2 text-center text-[9pt]">
+   383→  1233→              <tbody>
+   384→  1234→                <tr>
+   385→  1235→                  <td className="bg-slate-50 font-semibold">وزن (kg)</td>
+   386→  1236→                  <td>{v(s5?.weight)}</td>
+   387→  1237→                  <td className="bg-slate-50 font-semibold">قد (cm)</td>
+   388→  1238→                  <td>{v(s5?.height)}</td>
+   389→  1239→                  <td className="bg-slate-50 font-semibold">BMI</td>
+   390→  1240→                  <td>{v(s5?.bmi)}</td>
+   391→  1241→                  <td className="bg-slate-50 font-semibold">نبض</td>
+   392→  1242→                  <td>{v(s5?.pulse)}</td>
+   393→  1243→                  <td className="bg-slate-50 font-semibold">فشار خون (mmHg)</td>
+   394→  1244→                  <td>
+   395→  1245→                    {v(s5?.systolic)}
+   396→  1246→                    {s5?.systolic || s5?.diastolic ? ' / ' : ''}
+   397→  1247→                    {v(s5?.diastolic)}
+   398→  1248→                  </td>
+   399→  1249→                </tr>
+   400→  1250→              </tbody>
+   401→  1251→            </table>
+   402→  1252→          )}
+   403→  1253→
+   404→  1254→          {/* یافته‌های بالینی */}
+   405→  1255→          <div className="mb-1 text-[10pt] font-bold">یافته‌های بالینی</div>
+   406→  1256→          {isRestricted('S5') ? (
+   407→  1257→            <RestrictedTable cols={2} />
+   408→  1258→          ) : (
+   409→  1259→            <div className="mb-2 border border-slate-700 px-2 py-1 text-[9.5pt] leading-6">
+   410→  1260→              {clinicalAny
+   411→  1261→                ? clinicalRows
+   412→  1262→                    .filter((r) => r.items.length > 0)
+   413→  1263→                    .map((r) => (
+   414→  1264→                      <div key={r.label}>
+   415→  1265→                        <b>{r.label}:</b> {r.items.join('، ')}
+   416→  1266→                        {r.notes ? ` — ${r.notes}` : ''}
+   417→  1267→                      </div>
+   418→  1268→                    ))
+   419→  1269→                : 'یافته غیرطبیعی ثبت نشده'}
+   420→  1270→            </div>
+   421→  1271→          )}
+   422→  1272→
+   423→  1273→          {/* ادیومتری / اپتومتری */}
+   424→  1274→          <div className="mb-2 grid grid-cols-2 gap-2 text-[9pt]">
+   425→  1275→            <table className="print-form-table">
+   426→  1276→              <tbody>
+   427→  1277→                <tr>
+   428→  1278→                  <td colSpan={2} className={`${TEAL} text-center font-bold`}>تست شنوایی (ادیومتری)</td>
+   429→  1279→                </tr>
+   430→  1280→                <tr>
+   431→  1281→                  <td className="w-[36%] bg-slate-50 font-semibold">گوش راست</td>
+   432→  1282→                  <td>{isRestricted('S7B') ? 'محرمانه' : dd(s7b?.interpretationRight)}</td>
+   433→  1283→                </tr>
+   434→  1284→                <tr>
+   435→  1285→                  <td className="bg-slate-50 font-semibold">گوش چپ</td>
+   436→  1286→                  <td>{isRestricted('S7B') ? 'محرمانه' : dd(s7b?.interpretationLeft)}</td>
+   437→  1287→                </tr>
+   438→  1288→              </tbody>
+   439→  1289→            </table>
+   440→  1290→            <table className="print-form-table">
+   441→  1291→              <tbody>
+   442→  1292→                <tr>
+   443→  1293→                  <td colSpan={2} className={`${TEAL} text-center font-bold`}>تست بینایی (اپتومتری)</td>
+   444→  1294→                </tr>
+   445→  1295→                <tr>
+   446→  1296→                  <td className="w-[36%] bg-slate-50 font-semibold">راست — با اصلاح</td>
+   447→  1297→                  <td>{isRestricted('S7A') ? 'محرمانه' : v(s7a?.acuityRightWith)}</td>
+   448→  1298→                </tr>
+   449→  1299→                <tr>
+   450→  1300→                  <td className="bg-slate-50 font-semibold">راست — بدون اصلاح</td>
+   451→  1301→                  <td>{isRestricted('S7A') ? 'محرمانه' : v(s7a?.acuityRightWithout)}</td>
+   452→  1302→                </tr>
+   453→  1303→                <tr>
+   454→  1304→                  <td className="bg-slate-50 font-semibold">چپ — با اصلاح</td>
+   455→  1305→                  <td>{isRestricted('S7A') ? 'محرمانه' : v(s7a?.acuityLeftWith)}</td>
+   456→  1306→                </tr>
+   457→  1307→                <tr>
+   458→  1308→                  <td className="bg-slate-50 font-semibold">چپ — بدون اصلاح</td>
+   459→  1309→                  <td>{isRestricted('S7A') ? 'محرمانه' : v(s7a?.acuityLeftWithout)}</td>
+   460→  1310→                </tr>
+   461→  1311→                <tr>
+   462→  1312→                  <td className="bg-slate-50 font-semibold">دید رنگی / میدان بینایی</td>
+   463→  1313→                  <td>
+   464→  1314→                    {isRestricted('S7A')
+   465→  1315→                      ? 'محرمانه'
+   466→  1316→                      : `رنگی راست: ${vs(s7a?.colorRight) || '—'} | رنگی چپ: ${vs(s7a?.colorLeft) || '—'} | میدان راست: ${vs(s7a?.fieldRight) || '—'} | میدان چپ: ${vs(s7a?.fieldLeft) || '—'}`}
+   467→  1317→                  </td>
+   468→  1318→                </tr>
+   469→  1319→              </tbody>
+   470→  1320→            </table>
+   471→  1321→          </div>
+   472→  1322→
+   473→  1323→          {/* اسپیرومتری / نوار قلب و بافت‌ها */}
+   474→  1324→          <div className="mb-2 grid grid-cols-2 gap-2 text-[9pt]">
+   475→  1325→            <table className="print-form-table">
+   476→  1326→              <tbody>
+   477→  1327→                <tr>
+   478→  1328→                  <td colSpan={2} className={`${TEAL} text-center font-bold`}>تست ریوی (اسپیرومتری)</td>
+   479→  1329→                </tr>
+   480→  1330→                <tr>
+   481→  1331→                  <td className="w-[36%] bg-slate-50 font-semibold">تفصیر</td>
+   482→  1332→                  <td>{isRestricted('S7C') ? 'محرمانه' : dd(s7c?.interpretation)}</td>
+   483→  1333→                </tr>
+   484→  1334→                <tr>
+   485→  1335→                  <td className="bg-slate-50 font-semibold">FEV1 / FVC</td>
+   486→  1336→                  <td>
+   487→  1337→                    {isRestricted('S7C')
+   488→  1338→                      ? 'محرمانه'
+   489→  1339→                      : `${dd(s7c?.fev1Value)} / ${dd(s7c?.fvcValue)} — ${dd(s7c?.fev1Fvc)}%`}
+   490→  1340→                  </td>
+   491→  1341→                </tr>
+   492→  1342→              </tbody>
+   493→  1343→            </table>
+   494→  1344→            <table className="print-form-table">
+   495→  1345→              <tbody>
+   496→  1346→                <tr>
+   497→  1347→                  <td colSpan={2} className={`${TEAL} text-center font-bold`}>نوار قلب و بافت‌های بالینی</td>
+   498→  1348→                </tr>
+   499→  1349→                <tr>
+   500→  1350→                  <td className="w-[36%] bg-slate-50 font-semibold">نوار قلب (ECG)</td>
+   501→  1351→                  <td>
+   502→  1352→                    {isRestricted('S7D')
+   503→  1353→                      ? 'محرمانه'
+   504→  1354→                      : `${dd(s7d?.ecg)}${s7d?.ecgDate ? ` (${toFa(s7d.ecgDate)})` : ''}`}
+   505→  1355→                  </td>
+   506→  1356→                </tr>
+   507→  1357→                <tr>
+   508→  1358→                  <td className="bg-slate-50 font-semibold">بافت‌های CXR (P-A)</td>
+   509→  1359→                  <td>
+   510→  1360→                    {isRestricted('S7D')
+   511→  1361→                      ? 'محرمانه'
+   512→  1362→                      : `${dd(s7d?.cxr)}${s7d?.cxrDate ? ` (${toFa(s7d.cxrDate)})` : ''}`}
+   513→  1363→                  </td>
+   514→  1364→                </tr>
+   515→  1365→              </tbody>
+   516→  1366→            </table>
+   517→  1367→          </div>
+   518→  1368→
+   519→  1369→          {/* آزمایشات غیر نرمال */}
+   520→  1370→          <div className="mb-1 text-[10pt] font-bold">آزمایشات غیر نرمال</div>
+   521→  1371→          {isRestricted('S6') ? (
+   522→  1372→            <RestrictedTable cols={1} />
+   523→  1373→          ) : allLabChips.length ? (
+   524→  1374→            <table className="print-form-table mb-2 text-[8.5pt]">
+   525→  1375→              <tbody>
+   526→  1376→                <tr>
+   527→  1377→                  <td>
+   528→  1378→                    <div className="grid grid-cols-2 gap-px sm:grid-cols-3 print:grid-cols-6">
+   529→  1379→                      {allLabChips.map((it, i) => (
+   530→  1380→                        <div key={`${it.label}-${i}`} className="border border-slate-300 px-1 py-px">
+   531→  1381→                          {it.label}: <b>{v(it.value)}</b>
+   532→  1382→                        </div>
+   533→  1383→                      ))}
+   534→  1384→                    </div>
+   535→  1385→                  </td>
+   536→  1386→                </tr>
+   537→  1387→              </tbody>
+   538→  1388→            </table>
+   539→  1389→          ) : (
+   540→  1390→            <div className="mb-2 border-b border-dashed border-slate-500" />
+   541→  1391→          )}
+   542→  1392→
+   543→  1393→          {/* ارجاعات + توصیه‌ها */}
+   544→  1394→          <table className="print-form-table mb-2 text-[9.5pt]">
+   545→  1395→            <tbody>
+   546→  1396→              <tr className="align-top">
+   547→  1397→                <td className="w-[16%] bg-slate-50 font-semibold">ارجاعات</td>
+   548→  1398→                <td>
+   549→  1399→                  {refs.length
+   550→  1400→                    ? refs.map((r) => (
+   551→  1401→                        <div key={r.id}>
+   552→  1402→                          • {dd(r.date)} — {r.reason} ({r.specialty}):{' '}
+   553→  1403→                          {r.resolved && r.result ? r.result : 'در انتظار تعیین تکلیف'}
+   554→  1404→                        </div>
+   555→  1405→                      ))
+   556→  1406→                    : 'ندارد'}
+   557→  1407→                </td>
+   558→  1408→              </tr>
+   559→  1409→              <tr>
+   560→  1410→                <td className="bg-slate-50 font-semibold">توصیه‌های پزشکی</td>
+   561→  1411→                <td>{v(c.finalAdvice) || '—'}</td>
+   562→  1412→              </tr>
+   563→  1413→            </tbody>
+   564→  1414→          </table>
+   565→  1415→
+   566→  1416→          {/* نظریه پزشک طب کار */}
+   567→  1417→          <div className="mb-1 text-[10pt] font-bold">نظریه پزشک طب کار</div>
+   568→  1418→          <table className="print-form-table mb-2 text-[9.5pt]">
+   569→  1419→            <tbody>
+   570→  1420→              <tr>
+   571→  1421→                <td className="w-[16%] bg-slate-50 font-semibold">نظریه</td>
+   572→  1422→                <td className="font-bold">{FINAL_OPINION_LABELS[op] ?? '—'}</td>
+   573→  1423→              </tr>
+   574→  1424→              {c.finalText ? (
+   575→  1425→                <tr>
+   576→  1426→                  <td className="bg-slate-50 font-semibold">متن نظریه</td>
+   577→  1427→                  <td>{c.finalText}</td>
+   578→  1428→                </tr>
+   579→  1429→              ) : null}
+   580→  1430→              {op === 'FIT' ? (
+   581→  1431→                <tr>
+   582→  1432→                  <td className="bg-slate-50 font-semibold">جمع‌بندی</td>
+   583→  1433→                  <td className="font-bold">اشتغال به کار بلامانع است.</td>
+   584→  1434→                </tr>
+   585→  1435→              ) : null}
+   586→  1436→            </tbody>
+   587→  1437→          </table>
+   588→  1438→
+   589→  1439→          {/* پانویس ثابت */}
+   590→  1440→          <div className="border-t border-slate-500 pt-1 text-[9pt] leading-6">
+   591→  1441→            کلید مندرجات پرونده را مطالعه نموده و توضیحات و شروط به من اعلام شد. عواقب بروز هرگونه مشکل ناشی از عدم رعایت موارد فوق را به عهده می‌گیرم. امضای شاغل:{' '}
+   592→  1442→            <span className="inline-block w-40 border-b border-dashed border-slate-500 align-middle">&nbsp;</span>
+   593→  1443→          </div>
+   594→  1444→        </PrintPage>
+   595→  1445→
+   596→  1446→        {/* ═══════════ صفحه ۷ — فرم آزمایشات فردی ═══════════ */}
+   597→  1447→        <PrintPage draft={draft}>
+   598→  1448→          <PersonLine text={personLine} />
+   599→  1449→          <SectionBar>فرم آزمایشات فردی</SectionBar>
+   600→  1450→          <div className="mb-2 flex flex-wrap gap-x-6 gap-y-1 text-[9.5pt]">
+   601→  1451→            <span>
+   602→  1452→              نام و نام خانوادگی: <b>{p.firstName} {p.lastName}</b>
+   603→  1453→            </span>
+   604→  1454→            <span>
+   605→  1455→              کد ملی: <b>{v(p.nationalId)}</b>
+   606→  1456→            </span>
+   607→  1457→            <span>
+   608→  1458→              شماره همراه: <b>{v(p.phone)}</b>
+   609→  1459→            </span>
+   610→  1460→            <span>
+   611→  1461→              تاریخ آزمایش: <b>{dd(s6?.testDate)}</b>
+   612→  1462→            </span>
+   613→  1463→          </div>
+   614→  1464→          {isRestricted('S6') ? (
+   615→  1465→            <RestrictedTable cols={2} />
+   616→  1466→          ) : (
+   617→  1467→            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
+   618→  1468→              {LAB_GROUPS.map((g) => (
+   619→  1469→                <table key={g.key} className="print-form-table text-[9pt]">
+   620→  1470→                  <thead>
+   621→  1471→                    <tr>
+   622→  1472→                      <th colSpan={2} className={`${TEAL} text-center`}>
+   623→  1473→                        {g.label}
+   624→  1474→                      </th>
+   625→  1475→                    </tr>
+   626→  1476→                  </thead>
+   627→  1477→                  <tbody>
+   628→  1478→                    {g.fields.map((f) => {
+   629→  1479→                      const val = s6?.values?.[f.key]
+   630→  1480→                      return (
+   631→  1481→                        <tr key={f.key}>
+   632→  1482→                          <td className="w-1/2">{f.label}</td>
+   633→  1483→                          <td className="w-1/2">{val ? <b>{v(val)}</b> : ''}</td>
+   634→  1484→                        </tr>
+   635→  1485→                      )
+   636→  1486→                    })}
+   637→  1487→                  </tbody>
+   638→  1488→                </table>
+   639→  1489→              ))}
+   640→  1490→            </div>
+   641→  1491→          )}
+   642→  1492→        </PrintPage>
+   643→  1493→      </div>
+   644→  1494→    </main>
+   645→  1495→  )
+   646→  1496→}
+   647→  1497→
