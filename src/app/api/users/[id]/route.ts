@@ -4,8 +4,18 @@ import { requireRole, errorResponse, hashPassword, HttpError } from '@/lib/auth'
 import { ROLE_LABELS } from '@/lib/constants'
 import type { Role } from '@/lib/types'
 
-// نقش‌های ستادی که MANAGER می‌تواند ویرایش کند (نه ADMIN، نه EMPLOYER/CONTRACTOR/WORKER)
+// نقش‌های ستادی که MANAGER می‌تواند ویرایش کند (نه ADMIN، نه EMPLOYER/CONTRACTOR)
 const STAFF_ROLES: Role[] = ['HSE', 'DOCTOR', 'AUDIOLOGIST', 'OPTOMETRIST', 'LAB']
+
+// اطمینان از اعتبار dataURL تصویر (حداکثر ~۲MB پس از base64)
+const MAX_IMG_LEN = 2_800_000
+function validImageDataUrl(v: unknown): string | null {
+  const s = String(v || '')
+  if (!s) return null
+  if (!/^data:image\/(png|jpe?g|webp);base64,/.test(s)) throw new HttpError(400, 'فرمت تصویر باید PNG یا JPG باشد')
+  if (s.length > MAX_IMG_LEN) throw new HttpError(400, 'حجم تصویر بیش از حد مجاز است')
+  return s
+}
 
 const userSelect = {
   id: true,
@@ -17,10 +27,32 @@ const userSelect = {
   companyId: true,
   contractorId: true,
   personId: true,
+  signatureApproved: true,
+  signatureApprovedAt: true,
   createdAt: true,
   company: { select: { name: true } },
   contractor: { select: { name: true } },
 } as const
+
+// GET /api/users/[id] — جزئیات کاربر شامل تصویر امضا و مهر (ADMIN/MANAGER)
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await requireRole('ADMIN', 'MANAGER')
+    const { id } = await params
+    const user = await db.user.findUnique({
+      where: { id },
+      select: {
+        ...userSelect,
+        signatureData: true,
+        stampData: true,
+      },
+    })
+    if (!user) throw new HttpError(404, 'کاربر یافت نشد')
+    return NextResponse.json(user)
+  } catch (e) {
+    return errorResponse(e)
+  }
+}
 
 // PATCH /api/users/[id] — ویرایش کاربر (ADMIN همه؛ MANAGER فقط نقش‌های ستادی)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -82,6 +114,28 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       data.personId = personId || null
     }
 
+    // ─── امضا و مهر (dataURL) — توسط مدیر ثبت می‌شود ───
+    if (body.signatureData !== undefined) data.signatureData = validImageDataUrl(body.signatureData)
+    if (body.stampData !== undefined) data.stampData = validImageDataUrl(body.stampData)
+    if (body.signatureData !== undefined && !data.signatureData) {
+      // پاک‌کردن امضا → لغو تأیید
+      data.signatureApproved = false
+      data.signatureApprovedAt = null
+    }
+    if (body.signatureApproved !== undefined) {
+      const approved = Boolean(body.signatureApproved)
+      if (approved) {
+        // تأیید فقط وقتی ممکن است که تصویر امضا موجود باشد
+        const hasSig = data.signatureData !== undefined ? !!data.signatureData : !!target.signatureData
+        if (!hasSig) throw new HttpError(400, 'ابتدا تصویر امضا را ثبت کنید')
+        data.signatureApproved = true
+        data.signatureApprovedAt = new Date()
+      } else {
+        data.signatureApproved = false
+        data.signatureApprovedAt = null
+      }
+    }
+
     // جلوگیری از غیرفعال‌کردن آخرین ADMIN فعال
     if (target.role === 'ADMIN' && data.active === false) {
       const otherAdmins = await db.user.count({
@@ -90,7 +144,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (otherAdmins === 0) throw new HttpError(400, 'آخرین مدیر سامانه قابل غیرفعال‌سازی نیست')
     }
 
-    const user = await db.user.update({ where: { id }, data: data as never, select: userSelect })
+    const user = await db.user.update({
+      where: { id },
+      data: data as never,
+      select: { ...userSelect, signatureData: true, stampData: true },
+    })
     return NextResponse.json(user)
   } catch (e) {
     return errorResponse(e)

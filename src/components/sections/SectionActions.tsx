@@ -58,6 +58,8 @@ export function SectionActions({
   const isFinal = status === 'APPROVED' || status === 'NOT_APPLICABLE'
   const editable = canEdit && !isFinal && (EDITABLE_STATUSES.includes(status) || canApprove)
   const canSend = canEdit && !canApprove
+  // امضای تأییدشده ثبت‌شده توسط مدیر: امکان تأیید تک‌کلیکی با درج خودکار امضا و مهر
+  const hasAutoSignature = !!user?.signatureApproved && !!user?.signatureData
 
   const [name, setName] = useState(user?.fullName || '')
   const [signature, setSignature] = useState('')
@@ -85,8 +87,22 @@ export function SectionActions({
 
   const doSave = () => run('save', { action: 'save', ...(extraApprovePayload ?? {}) }, 'اطلاعات بخش ذخیره شد')
   const doSubmit = () => run('submit', { action: 'submit', ...(extraApprovePayload ?? {}) }, 'بخش برای بررسی ارسال شد')
+  // مسیر دستی: امضا با بوم — بدون مهر ثبت‌شده
   const doApprove = () =>
-    run('approve', { action: 'approve', name: name.trim(), signature: signature || '', ...(extraApprovePayload ?? {}) }, 'بخش تأیید و امضا شد')
+    run('approve', { action: 'approve', name: name.trim(), signature: signature || '', stamp: '', ...(extraApprovePayload ?? {}) }, 'بخش تأیید و امضا شد')
+  // مسیر تک‌کلیکی: امضا و مهر تأییدشده کاربر به‌طور خودکار درج می‌شود
+  const doAutoApprove = () =>
+    run(
+      'approve',
+      {
+        action: 'approve',
+        name: user?.fullName || '',
+        signature: user?.signatureData || '',
+        stamp: user?.stampData || '',
+        ...(extraApprovePayload ?? {}),
+      },
+      'بخش با امضا و مهر ثبت‌شده تأیید شد',
+    )
   const doReject = () =>
     run('reject', { action: 'reject', note: note.trim() }, 'بخش «نیازمند اصلاح» علامت‌گذاری شد')
   const doNa = () => run('na', { action: 'na', note: note.trim() }, 'بخش نامرتبط اعلام شد')
@@ -141,7 +157,31 @@ export function SectionActions({
                 ارسال برای بررسی
               </Button>
             )}
-            {canApprove && status !== 'APPROVED' && status !== 'NOT_APPLICABLE' && (
+            {canApprove && status !== 'APPROVED' && status !== 'NOT_APPLICABLE' && hasAutoSignature && (
+              <>
+                {/* تأیید تک‌کلیکی — بدون پنل و بدون چک‌باکس */}
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  onClick={doAutoApprove}
+                  disabled={busy !== null}
+                >
+                  {busy === 'approve' ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                  {approvalLabel || 'ثبت امضا و مهر'}
+                </Button>
+                {/* پیش‌نمایش امضا و مهر تأییدشده کاربر */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {user?.signatureData && (
+                    <img src={user.signatureData} alt="امضای تأییدشده شما" className="h-8 rounded border bg-white" />
+                  )}
+                  {user?.stampData && (
+                    <img src={user.stampData} alt="مهر تأییدشده شما" className="h-10 rounded border bg-white" />
+                  )}
+                  <span className="text-xs text-muted-foreground">امضای تأییدشده شما به‌طور خودکار درج می‌شود</span>
+                </div>
+              </>
+            )}
+            {canApprove && status !== 'APPROVED' && status !== 'NOT_APPLICABLE' && !hasAutoSignature && (
               <Button
                 size="sm"
                 className="bg-emerald-600 text-white hover:bg-emerald-700"
@@ -183,8 +223,8 @@ export function SectionActions({
             )}
           </div>
 
-          {/* پنل تأیید و امضا */}
-          {panel === 'approve' && (
+          {/* پنل تأیید و امضا — فقط برای کاربران بدون امضای تأییدشده (مسیر دستی) */}
+          {panel === 'approve' && !hasAutoSignature && (
             <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">

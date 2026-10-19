@@ -57,9 +57,6 @@ function visibleItems(role: Role | undefined): { key: ViewKey; label: string; ic
   if (!role) return []
   return NAV_ITEMS.filter(
     (it) => it.roles === 'all' || it.roles.includes(role),
-  ).map((it) =>
-    // برچسب «پرونده‌ها» برای مراجعه‌کننده
-    it.key === 'cases' && role === 'WORKER' ? { ...it, label: 'پرونده‌های من' } : it,
   )
 }
 

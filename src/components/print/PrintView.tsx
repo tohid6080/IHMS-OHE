@@ -4,7 +4,7 @@
 // فقط همین فایل؛ بدون تغییر در globals.css / store / types / api
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowRight, Printer, Stethoscope } from 'lucide-react'
+import { ArrowRight, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AudiogramChart } from '@/components/common/AudiogramChart'
@@ -80,9 +80,22 @@ function SectionBar({ children }: { children: ReactNode }) {
   return <div className={`mb-1.5 border border-slate-700 px-2 py-[3px] text-[11pt] font-bold ${TEAL}`}>{children}</div>
 }
 
-// سربرگ کوچک بالای هر صفحه مثل PDF پیوست
-function PersonLine({ text }: { text: string }) {
-  return <div className="mb-2 border-b border-slate-500 pb-0.5 text-[8.5pt] text-slate-700">{text}</div>
+// سربرگ کوچک بالای هر صفحه مثل PDF پیوست (+ لوگوی کوچک مرکز در صفحات ادامه)
+function PersonLine({ text, withLogo = true }: { text: string; withLogo?: boolean }) {
+  return (
+    <div className="mb-2 flex items-center gap-1.5 border-b border-slate-500 pb-0.5 text-[8.5pt] text-slate-700">
+      {withLogo ? (
+        <img
+          src="/images/center-logo.png"
+          alt="لوگوی مرکز"
+          width={18}
+          height={18}
+          className="inline-block size-[18px] shrink-0 object-contain"
+        />
+      ) : null}
+      <span className="min-w-0">{text}</span>
+    </div>
+  )
 }
 
 function SignImg({ src, alt }: { src: string; alt: string }) {
@@ -94,6 +107,49 @@ function SignOrLine({ src, alt, placeholder }: { src?: string | null; alt: strin
   return (
     <span className="inline-block min-w-32 border-b border-dashed border-slate-500 pb-0.5 text-center text-[8pt] text-slate-400">
       {placeholder}
+    </span>
+  )
+}
+
+// مهر و امضای تأییدکننده — امضا (h-10) + مهر (h-14 با چرخش ملایم و شفافیت ۹۰٪) بالای نام چاپی؛
+// در نبود تصویر، رفتار خط جای مهر و امضا مثل قبل حفظ می‌شود
+function StampAndSign({
+  signature,
+  stamp,
+  name,
+  placeholder = 'محل مهر و امضا',
+}: {
+  signature?: string | null
+  stamp?: string | null
+  name?: string | null
+  placeholder?: string
+}) {
+  const nameLine = name ? v(name) : ''
+  return (
+    <span className="inline-flex flex-col items-center align-middle">
+      {!signature && !stamp ? (
+        <span className="inline-block min-w-32 border-b border-dashed border-slate-500 pb-0.5 text-center text-[8pt] text-slate-400">
+          {placeholder}
+        </span>
+      ) : (
+        <span className="relative inline-flex h-14 min-w-32 items-end justify-center">
+          {stamp ? (
+            <img
+              src={stamp}
+              alt="مهر تأیید"
+              className="absolute bottom-0 left-1/2 h-14 w-14 -translate-x-1/2 rotate-[-8deg] object-contain opacity-90"
+            />
+          ) : null}
+          {signature ? (
+            <img src={signature} alt="امضا" className="relative z-10 h-10 max-w-[160px] translate-x-3 object-contain" />
+          ) : null}
+        </span>
+      )}
+      {nameLine ? (
+        <span className="min-w-32 border-t border-slate-500 px-2 pt-px text-center text-[8.5pt] font-bold leading-4">
+          {nameLine}
+        </span>
+      ) : null}
     </span>
   )
 }
@@ -258,6 +314,13 @@ export function PrintView() {
     return !!d && Object.keys(d).length > 0
   }
 
+  // مهر/امضای تأیید هر بخش (سطح DTO — هنگام تأیید بخش ثبت می‌شود)
+  const secMeta = (key: SectionKey) => ({
+    signature: sec(key)?.approvedSignature ?? null,
+    stamp: sec(key)?.approvedStamp ?? null,
+    name: sec(key)?.approvedByName ?? null,
+  })
+
   const s2 = dataOf<Section2Data>('S2')
   const s3 = dataOf<Section3Data>('S3')
   const s4 = dataOf<Section4Data>('S4')
@@ -268,6 +331,13 @@ export function PrintView() {
   const s7c = dataOf<Section7CData>('S7C')
   const s7d = dataOf<Section7DData>('S7D')
   const s8 = dataOf<Section8Data>('S8')
+
+  // متادیتای تأیید بخش‌های دارای مهر و امضا
+  const ap3 = secMeta('S3')
+  const ap4 = secMeta('S4')
+  const ap7a = secMeta('S7A')
+  const ap7b = secMeta('S7B')
+  const ap7c = secMeta('S7C')
 
   const op = c.finalOpinion ?? ''
   const age = calcAge(p.birthYear)
@@ -332,7 +402,7 @@ export function PrintView() {
       <div id="print-area" className="mt-4">
         {/* ═══════════ صفحه ۱ — سربرگ + بخش‌های ۱ تا ۳ ═══════════ */}
         <PrintPage draft={draft}>
-          <PersonLine text={personLine} />
+          <PersonLine text={personLine} withLogo={false} />
           {draft && (
             <div className={`mb-2 border border-yellow-600 bg-yellow-200 px-2 py-1 text-center text-[10.5pt] font-bold text-yellow-900 ${COLOR}`}>
               این نسخه پیش‌نویس است و قابل استناد به‌عنوان گواهی نهایی نمی‌باشد
@@ -352,9 +422,13 @@ export function PrintView() {
                   <div className="text-[15pt] font-black">پرونده پزشکی شاغل</div>
                 </td>
                 <td className="w-[16%] text-center align-middle">
-                  <div className={`mx-auto flex size-14 items-center justify-center rounded-full border-2 border-teal-700 bg-teal-50 ${COLOR}`}>
-                    <Stethoscope className="size-7 text-teal-700" />
-                  </div>
+                  <img
+                    src="/images/center-logo.png"
+                    alt="لوگوی مرکز"
+                    width={76}
+                    height={76}
+                    className="mx-auto size-[76px] rounded-full border-2 border-teal-700 bg-white object-contain"
+                  />
                   <div className="mt-1 text-[9pt] font-bold text-teal-800">طب کار</div>
                 </td>
               </tr>
@@ -434,9 +508,15 @@ export function PrintView() {
             </div>
             <div className="w-[90px] shrink-0">
               {p.photo ? (
-                <img src={p.photo} alt="عکس پرسنلی" width={90} height={120} className="h-[120px] w-[90px] border border-slate-600 object-cover" />
+                <img
+                  src={p.photo}
+                  alt="عکس پرسنلی"
+                  width={90}
+                  height={120}
+                  className="h-[120px] w-[90px] border border-slate-600 bg-white object-cover"
+                />
               ) : (
-                <div className="flex h-[120px] w-[90px] items-center justify-center border border-slate-600 text-[9pt] text-slate-400">عکس</div>
+                <div className="flex h-[120px] w-[90px] items-center justify-center border border-slate-600 bg-slate-50 text-[9pt] text-slate-400">عکس</div>
               )}
             </div>
           </div>
@@ -518,10 +598,13 @@ export function PrintView() {
                 <td className="bg-slate-50 font-semibold">نام و نام خانوادگی کارشناس بهداشت حرفه‌ای</td>
                 <td>
                   <div className="flex items-center justify-between gap-4">
-                    <span>
-                      {dd(s3?.expertName)} — تاریخ: {dd(s3?.expertDate)}
-                    </span>
-                    <SignOrLine src={s3?.signature} alt="امضای کارشناس بهداشت حرفه‌ای" placeholder="محل مهر و امضا" />
+                    <span>تاریخ: {dd(s3?.expertDate)}</span>
+                    <StampAndSign
+                      signature={s3?.signature ?? ap3.signature}
+                      stamp={ap3.stamp}
+                      name={s3?.expertName || ap3.name}
+                      placeholder="محل مهر و امضا"
+                    />
                   </div>
                 </td>
               </tr>
@@ -567,7 +650,7 @@ export function PrintView() {
                 <span>
                   امضا و تاریخ ثبت اظهارات شاغل فوق: <b>{dd(s4?.declaredAt)}</b>
                 </span>
-                <SignOrLine src={s4?.declarationSignature} alt="امضای شاغل" placeholder="امضای شاغل" />
+                <StampAndSign signature={s4?.declarationSignature} stamp={ap4.stamp} placeholder="امضای شاغل" />
               </div>
             </>
           )}
@@ -731,16 +814,16 @@ export function PrintView() {
                 <tr>
                   <td className="bg-slate-50 text-right font-semibold">امضا</td>
                   <td colSpan={2} className="text-right">
-                    <span>امضا: {v(s7a?.technicianName) || '—'}</span>
+                    <div className="flex items-center justify-between gap-4">
+                      <span>امضا: {v(s7a?.technicianName) || '—'}</span>
+                      <StampAndSign
+                        signature={s7a?.signature ?? ap7a.signature}
+                        stamp={ap7a.stamp}
+                        placeholder="محل مهر و امضا"
+                      />
+                    </div>
                   </td>
                 </tr>
-                {s7a?.signature ? (
-                  <tr>
-                    <td colSpan={3} className="text-center">
-                      <SignImg src={s7a.signature} alt="امضای اپتومتریست" />
-                    </td>
-                  </tr>
-                ) : null}
               </tbody>
             </table>
           )}
@@ -805,10 +888,14 @@ export function PrintView() {
                   <tr>
                     <td className="bg-slate-50 font-semibold">نام ادیولوژیست</td>
                     <td colSpan={3}>
-                      <span className="inline-flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-4">
                         <b>{v(s7b?.audiologistName) || '—'}</b>
-                        <SignOrLine src={s7b?.signature} alt="امضای ادیولوژیست" placeholder="محل امضا" />
-                      </span>
+                        <StampAndSign
+                          signature={s7b?.signature ?? ap7b.signature}
+                          stamp={ap7b.stamp}
+                          placeholder="محل امضا"
+                        />
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -856,10 +943,14 @@ export function PrintView() {
                 <tr>
                   <td className="bg-slate-50 font-semibold">امضا</td>
                   <td colSpan={3}>
-                    <span className="inline-flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-4">
                       <span>امضا: {v(s7c?.technicianName) || '—'}</span>
-                      <SignOrLine src={s7c?.signature} alt="امضای کارشناس اسپیرومتری" placeholder="محل امضا" />
-                    </span>
+                      <StampAndSign
+                        signature={s7c?.signature ?? ap7c.signature}
+                        stamp={ap7c.stamp}
+                        placeholder="محل امضا"
+                      />
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -991,11 +1082,12 @@ export function PrintView() {
                 <td>{v(c.finalDate)}</td>
                 <td className="bg-slate-50 font-semibold">مهر و امضا</td>
                 <td className="h-16 text-center align-middle">
-                  {c.finalSignature ? (
-                    <img src={c.finalSignature} alt="مهر و امضای پزشک" className="mx-auto max-h-16 object-contain" />
-                  ) : (
-                    <span className="text-[8pt] text-slate-400">مهر و امضای پزشک</span>
-                  )}
+                  <StampAndSign
+                    signature={c.finalSignature}
+                    stamp={c.finalStamp}
+                    name={c.finalDoctorName}
+                    placeholder="مهر و امضای پزشک"
+                  />
                 </td>
               </tr>
             </tbody>
@@ -1346,7 +1438,8 @@ export function PrintView() {
 
           {/* پانویس ثابت */}
           <div className="border-t border-slate-500 pt-1 text-[9pt] leading-6">
-            کلید مندرجات پرونده را مطالعه نموده و توضیحات و شروط به من اعلام شد. عواقب بروز هرگونه مشکل ناشی از عدم رعایت موارد فوق را به عهده می‌گیرم. امضا
+            کلید مندرجات پرونده را مطالعه نموده و توضیحات و شروط به من اعلام شد. عواقب بروز هرگونه مشکل ناشی از عدم رعایت موارد فوق را به عهده می‌گیرم. امضای شاغل:{' '}
+            <span className="inline-block w-40 border-b border-dashed border-slate-500 align-middle">&nbsp;</span>
           </div>
         </PrintPage>
 

@@ -6,7 +6,6 @@ import { toast } from 'sonner'
 import {
   Alert, AlertDescription, AlertTitle,
 } from '@/components/ui/alert'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,10 +18,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  ArrowLeft, ArrowRight, Camera, CheckCircle2, Loader2, Plus, Search, Trash2, UserPlus,
+  ArrowLeft, ArrowRight, CheckCircle2, Loader2, Plus, Search, Trash2, UserPlus,
 } from 'lucide-react'
 import { JalaliDateInput } from '@/components/common/JalaliDateInput'
-import { apiGet, apiPost } from '@/lib/api'
+import { PhotoCapture } from '@/components/common/PhotoCapture'
+import { apiGet, apiPatch, apiPost } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { toEn, toFa, todayJalali } from '@/lib/jalali'
 import {
@@ -175,29 +175,6 @@ export function ReceptionView() {
     }
   }
 
-  const onPhotoChange = (file: File | undefined) => {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const img = new Image()
-      img.onload = () => {
-        const max = 240
-        const scale = Math.min(1, max / Math.max(img.width, img.height))
-        const w = Math.round(img.width * scale)
-        const h = Math.round(img.height * scale)
-        const canvas = document.createElement('canvas')
-        canvas.width = w
-        canvas.height = h
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-        ctx.drawImage(img, 0, 0, w, h)
-        setPhoto(canvas.toDataURL('image/jpeg', 0.85))
-      }
-      img.src = String(reader.result)
-    }
-    reader.readAsDataURL(file)
-  }
-
   const goStep2 = () => {
     const nid = toEn(nationalId).replace(/\D/g, '')
     if (!/^\d{8,12}$/.test(nid)) {
@@ -246,6 +223,25 @@ export function ReceptionView() {
       }
       if (foundPerson?.id) {
         payload.personId = foundPerson.id
+        // به‌روزرسانی مشخصات و عکس فرد موجود پیش از تشکیل پرونده
+        // (POST /api/cases برای فرد موجود فقط پرونده می‌سازد و عکس/مشخصات را به‌روز نمی‌کند)
+        await apiPatch(`/api/persons/${foundPerson.id}`, {
+          photo: photo || '', // رشته خالی یعنی حذف عکس
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          fatherName: fatherName.trim(),
+          gender,
+          birthYear,
+          birthDate,
+          maritalStatus,
+          childrenCount,
+          education,
+          phone,
+          insuranceNo,
+          militaryStatus: gender === 'MALE' ? militaryStatus : '',
+          militaryUnit: gender === 'MALE' ? militaryUnit.trim() : '',
+          militaryExemption: gender === 'MALE' ? militaryExemption.trim() : '',
+        })
       } else {
         payload.person = {
           nationalId: toEn(nationalId).replace(/\D/g, ''),
@@ -347,22 +343,7 @@ export function ReceptionView() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[auto_1fr]">
               <div className="space-y-2">
                 <Label className="text-xs">عکس پرسنلی</Label>
-                <div className="flex items-center gap-3">
-                  <Avatar className="size-20 border">
-                    {photo ? <AvatarImage src={photo} alt="عکس پرسنلی" /> : null}
-                    <AvatarFallback className="bg-teal-50 text-teal-700">
-                      {firstName ? firstName[0] : <Camera className="size-6" />}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="space-y-1">
-                    <Input type="file" accept="image/*" onChange={(e) => onPhotoChange(e.target.files?.[0])} className="w-56 text-xs" disabled={busy} />
-                    {photo && (
-                      <Button type="button" variant="ghost" size="sm" className="h-6 text-xs text-rose-600" onClick={() => setPhoto('')}>
-                        <Trash2 className="size-3" /> حذف عکس
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <PhotoCapture value={photo} onChange={setPhoto} disabled={busy} />
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">

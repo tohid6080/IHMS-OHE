@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
     const ok = await verifyPassword(password, user.password)
     if (!ok) throw new HttpError(401, 'نام کاربری یا رمز عبور اشتباه است')
 
-    const sessionUser: SessionUser = {
+    // توکن JWT باید حداقلی بماند — امضا/مهر (تا صدها KB) هرگز داخل کوکی نمی‌رود
+    const tokenUser = {
       id: user.id,
       username: user.username,
       fullName: user.fullName,
@@ -26,8 +27,15 @@ export async function POST(req: NextRequest) {
       contractorId: user.contractorId,
       personId: user.personId,
     }
-    const token = await createSessionToken(sessionUser)
-    const res = NextResponse.json({ user: sessionUser })
+    const token = await createSessionToken(tokenUser as SessionUser)
+    // پاسخ ورود: همان کاربر + داده‌های تازهٔ امضا/مهر (فقط در بدنه پاسخ، نه کوکی)
+    const resUser: SessionUser = {
+      ...tokenUser,
+      signatureData: user.signatureData,
+      stampData: user.stampData,
+      signatureApproved: user.signatureApproved,
+    }
+    const res = NextResponse.json({ user: resUser })
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       sameSite: 'lax',

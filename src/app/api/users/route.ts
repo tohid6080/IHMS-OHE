@@ -17,6 +17,8 @@ const userSelect = {
   companyId: true,
   contractorId: true,
   personId: true,
+  signatureApproved: true,
+  signatureApprovedAt: true,
   createdAt: true,
   company: { select: { name: true } },
   contractor: { select: { name: true } },
@@ -93,4 +95,14 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return errorResponse(e)
   }
+}
+
+// اطمینان از اعتبار dataURL تصویر (حداکثر ~۲MB پس از base64)
+const MAX_IMG_LEN = 2_800_000
+function validImageDataUrl(v: unknown): string | null {
+  const s = String(v || '')
+  if (!s) return null
+  if (!/^data:image\/(png|jpe?g|webp);base64,/.test(s)) throw new HttpError(400, 'فرمت تصویر باید PNG یا JPG باشد')
+  if (s.length > MAX_IMG_LEN) throw new HttpError(400, 'حجم تصویر بیش از حد مجاز است')
+  return s
 }

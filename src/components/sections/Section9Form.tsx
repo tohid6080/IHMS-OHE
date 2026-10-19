@@ -45,6 +45,8 @@ export function Section9Form({ caseId, section, caseData, onSaved }: Props) {
   const status = section?.status ?? 'NOT_STARTED'
   const isDoctorSide = role === 'DOCTOR' || role === 'ADMIN'
   const formActive = isDoctorSide && status !== 'APPROVED'
+  // امضای تأییدشده پزشک ثبت‌شده توسط مدیر: درج خودکار امضا و مهر بدون بوم دستی
+  const hasAutoSignature = isDoctorSide && !!user?.signatureApproved && !!user?.signatureData
 
   const [finalOpinion, setFinalOpinion] = useState('')
   const [finalText, setFinalText] = useState('')
@@ -81,7 +83,8 @@ export function Section9Form({ caseId, section, caseData, onSaved }: Props) {
           finalDoctorName: finalDoctorName.trim(),
           finalDoctorCode: finalDoctorCode || undefined,
           finalDate,
-          finalSignature: finalSignature || undefined,
+          finalSignature: hasAutoSignature ? (user?.signatureData || undefined) : (finalSignature || undefined),
+          stamp: hasAutoSignature ? (user?.stampData || undefined) : undefined,
           workerDeclaration: workerDeclaration || undefined,
           workerDeclarationName: workerName.trim() || undefined,
         }),
@@ -235,7 +238,19 @@ export function Section9Form({ caseId, section, caseData, onSaved }: Props) {
                 <JalaliDateInput value={finalDate} onChange={setFinalDate} disabled={busy} />
               </div>
             </div>
-            <SignaturePad value={finalSignature} onChange={setFinalSignature} label="امضای پزشک (اختیاری)" disabled={busy} />
+            {hasAutoSignature ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-3">
+                {user?.signatureData && (
+                  <img src={user.signatureData} alt="امضای تأییدشده پزشک" className="h-8 rounded border bg-white" />
+                )}
+                {user?.stampData && (
+                  <img src={user.stampData} alt="مهر تأییدشده پزشک" className="h-10 rounded border bg-white" />
+                )}
+                <span className="text-xs text-emerald-800">امضای تأییدشده شما به‌طور خودکار درج می‌شود</span>
+              </div>
+            ) : (
+              <SignaturePad value={finalSignature} onChange={setFinalSignature} label="امضای پزشک (اختیاری)" disabled={busy} />
+            )}
 
             {/* اظهار شاغل */}
             <div className="space-y-2 rounded-lg border border-dashed p-3">
@@ -256,7 +271,7 @@ export function Section9Form({ caseId, section, caseData, onSaved }: Props) {
               disabled={busy || !canSubmit}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : <Stamp className="size-4" />}
-              ثبت نظریه نهایی
+              {hasAutoSignature ? 'ثبت امضا و مهر پزشک' : 'ثبت نظریه نهایی'}
             </Button>
           </CardContent>
         </Card>
@@ -301,10 +316,17 @@ export function Section9Form({ caseId, section, caseData, onSaved }: Props) {
               <div>کد معاینات سلامت شغلی: <span className="text-foreground" dir="ltr">{c.finalDoctorCode ? toFa(c.finalDoctorCode) : '—'}</span></div>
               <div>تاریخ: <span className="text-foreground">{c.finalDate ? toFa(c.finalDate) : '—'}</span></div>
             </div>
-            {c.finalSignature && (
+            {(c.finalSignature || c.finalStamp) && (
               <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">امضای پزشک</div>
-                <img src={c.finalSignature} alt="امضای پزشک" className="h-14 rounded border bg-white" />
+                <div className="text-xs text-muted-foreground">امضا و مهر پزشک</div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {c.finalSignature && (
+                    <img src={c.finalSignature} alt="امضای پزشک" className="h-14 rounded border bg-white" />
+                  )}
+                  {c.finalStamp && (
+                    <img src={c.finalStamp} alt="مهر پزشک" className="h-16 rounded border bg-white" />
+                  )}
+                </div>
               </div>
             )}
             <Separator />

@@ -78,7 +78,7 @@ export function LoginView() {
               id="username"
               dir="ltr"
               className="text-left"
-              placeholder="username"
+              placeholder="نام کاربری"
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}

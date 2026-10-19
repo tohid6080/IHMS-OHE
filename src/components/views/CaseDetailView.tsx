@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertTriangle, ArrowRight, Briefcase, Building2, CalendarDays, CheckCircle2,
-  DoorClosed, Factory, FileText, FolderKanban, HardHat, Hash, Loader2, Save, ShieldAlert, Stamp, Trash2,
+  DoorClosed, Factory, FileText, FolderKanban, HardHat, Hash, Info, Loader2, Save, ShieldAlert, Stamp, Trash2,
 } from 'lucide-react'
 import { JalaliDateInput } from '@/components/common/JalaliDateInput'
 import { StatusBadge, FinalOpinionBadge } from '@/components/common/StatusBadge'
@@ -42,14 +42,17 @@ import { Section9Form } from '@/components/sections/Section9Form'
 import { ApiError, apiGet, apiPatch } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { calcAge, formatJalaliDateTime, toEn, toFa } from '@/lib/jalali'
-import { sectionTitle } from '@/lib/case-utils'
+import { sectionTitle, visibleSectionsFor } from '@/lib/case-utils'
 import {
   EDUCATION_OPTIONS, EXAM_TYPE_LABELS, GENDER_LABELS, GROUP_TYPE_LABELS, MARITAL_LABELS,
   MILITARY_LABELS, ROLE_LABELS, SECTION_DEFS, SECTION_RESPONSIBLE,
 } from '@/lib/constants'
-import type { CaseDetailDTO, SectionDTO, SectionKey } from '@/lib/types'
+import type { CaseDetailDTO, Role, SectionDTO, SectionKey } from '@/lib/types'
 
 interface OrgOption { id: string; name: string }
+
+// نقش‌های کارشناسی: فقط بخش‌های مرتبط با نقش خود را می‌بینند
+const SPECIALIST_ROLES: Role[] = ['HSE', 'AUDIOLOGIST', 'OPTOMETRIST', 'LAB']
 
 // ─── تبدیل عکس به dataURL با بیشینه ۲۴۰ پیکسل ───
 function resizePhoto(file: File, done: (dataUrl: string) => void) {
@@ -526,7 +529,9 @@ export function CaseDetailView() {
 
   const role = user?.role
   const canEditCase = role === 'ADMIN' || role === 'MANAGER'
-  const isWorker = role === 'WORKER'
+  // بخش‌های قابل مشاهده بر اساس نقش: مدیر/پزشک/کارفرما/پیمانکار همه؛ کارشناسان فقط بخش‌های خودشان
+  const visibleKeys = role ? visibleSectionsFor(role) : new Set<SectionKey>()
+  const isSpecialist = !!role && SPECIALIST_ROLES.includes(role)
 
   const load = useCallback(async () => {
     if (!currentCaseId) return
@@ -579,12 +584,13 @@ export function CaseDetailView() {
   const openItems = data.openItems
   const onSaved = () => refresh()
 
-  // اولین بخش ناتمام به‌عنوان مقدار پیش‌فرض آکاردئون
+  // اولین بخش ناتمامِ قابل‌مشاهده به‌عنوان مقدار پیش‌فرض آکاردئون
+  const visibleDefs = SECTION_DEFS.filter((def) => visibleKeys.has(def.key))
   const firstOpenKey =
-    SECTION_DEFS.find((def) => {
+    visibleDefs.find((def) => {
       const st = data.sections.find((s) => s.key === def.key)?.status || 'NOT_STARTED'
       return st !== 'APPROVED' && st !== 'NOT_APPLICABLE'
-    })?.key || SECTION_DEFS[0].key
+    })?.key || visibleDefs[0]?.key || SECTION_DEFS[0].key
 
   const chips: { icon: React.ReactNode; label: string; value: string }[] = [
     { icon: <Building2 className="size-3" />, label: 'محل کار', value: c.workPlace },
@@ -679,15 +685,7 @@ export function CaseDetailView() {
 
           {/* دکمه‌های چاپ */}
           <div className="flex flex-wrap items-center gap-2">
-            {isWorker ? (
-              c.completedAt && (
-                <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => openPrint(c.id, false)}>
-                  <Stamp className="size-4" />
-                  چاپ گزارش نهایی
-                </Button>
-              )
-            ) : (
-              <>
+
                 <Button
                   size="sm"
                   className="bg-teal-600 hover:bg-teal-700"
@@ -702,8 +700,6 @@ export function CaseDetailView() {
                   <FileText className="size-4" />
                   پیش‌نمایش پیش‌نویس
                 </Button>
-              </>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -716,7 +712,16 @@ export function CaseDetailView() {
         </TabsList>
 
         <TabsContent value="sections" className="space-y-4">
-          {/* بخش ۱ — همیشه باز */}
+          {/* اطلاع‌رسانی دید نقشی برای کارشناسان */}
+          {isSpecialist && (
+            <Alert className="border-cyan-200 bg-cyan-50 text-cyan-800">
+              <Info className="size-4" />
+              <AlertTitle>نمای محدود به نقش</AlertTitle>
+              <AlertDescription>فقط بخش‌های مرتبط با نقش شما در این پرونده نمایش داده می‌شود.</AlertDescription>
+            </Alert>
+          )}
+
+          {/* بخش ۱ — همیشه باز (برای کارشناسان فقط‌نمایش) */}
           <S1Card caseData={data} canEdit={canEditCase} orgs={{ companies, contractors, projects }} onSaved={onSaved} />
 
           {data.restricted && (
@@ -726,9 +731,9 @@ export function CaseDetailView() {
             </Alert>
           )}
 
-          {/* بخش‌های ۲ تا ۹ */}
+          {/* بخش‌های ۲ تا ۹ — فقط بخش‌های مجاز نقش فعلی */}
           <Accordion type="single" collapsible defaultValue={firstOpenKey} className="space-y-3">
-            {SECTION_DEFS.map((def) => {
+            {visibleDefs.map((def) => {
               const sec = data.sections.find((s) => s.key === def.key)
               return (
                 <AccordionItem

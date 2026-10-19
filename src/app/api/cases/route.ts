@@ -100,7 +100,6 @@ export async function GET(req: NextRequest) {
     // محدودسازی دسترسی نقشی
     if (session.role === 'EMPLOYER') and.push({ companyId: session.companyId || '__none__' })
     else if (session.role === 'CONTRACTOR') and.push({ contractorId: session.contractorId || '__none__' })
-    else if (session.role === 'WORKER') and.push({ personId: session.personId || '__none__' })
 
     if (examType) and.push({ examType })
     if (companyId) and.push({ companyId })

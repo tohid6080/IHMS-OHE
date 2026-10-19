@@ -1,0 +1,660 @@
+     1→'use client'
+     2→
+     3→// ─── نمای پذیرش: ویزارد ۲ مرحله‌ای (مشخصات فردی → اطلاعات مراجعه) ───
+     4→import { useEffect, useState } from 'react'
+     5→import { toast } from 'sonner'
+     6→import {
+     7→  Alert, AlertDescription, AlertTitle,
+     8→} from '@/components/ui/alert'
+     9→import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+    10→import { Badge } from '@/components/ui/badge'
+    11→import { Button } from '@/components/ui/button'
+    12→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+    13→import { Input } from '@/components/ui/input'
+    14→import { Label } from '@/components/ui/label'
+    15→import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+    16→import {
+    17→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    18→} from '@/components/ui/select'
+    19→import { Separator } from '@/components/ui/separator'
+    20→import { Textarea } from '@/components/ui/textarea'
+    21→import {
+    22→  ArrowLeft, ArrowRight, Camera, CheckCircle2, Loader2, Plus, Search, Trash2, UserPlus,
+    23→} from 'lucide-react'
+    24→import { JalaliDateInput } from '@/components/common/JalaliDateInput'
+    25→import { apiGet, apiPost } from '@/lib/api'
+    26→import { useAppStore } from '@/lib/store'
+    27→import { toEn, toFa, todayJalali } from '@/lib/jalali'
+    28→import {
+    29→  EDUCATION_OPTIONS, EXAM_TYPE_LABELS, GENDER_LABELS, GROUP_TYPE_LABELS, MARITAL_LABELS, MILITARY_LABELS,
+    30→} from '@/lib/constants'
+    31→import type { JobHistoryRow } from '@/lib/types'
+    32→
+    33→interface PersonSearchItem {
+    34→  id: string
+    35→  nationalId: string
+    36→  firstName: string
+    37→  lastName: string
+    38→  fatherName?: string | null
+    39→  gender?: string | null
+    40→  birthYear?: string | null
+    41→  birthDate?: string | null
+    42→  maritalStatus?: string | null
+    43→  childrenCount?: number | null
+    44→  education?: string | null
+    45→  phone?: string | null
+    46→  insuranceNo?: string | null
+    47→  militaryStatus?: string | null
+    48→  militaryUnit?: string | null
+    49→  militaryExemption?: string | null
+    50→  photo?: string | null
+    51→  casesCount: number
+    52→}
+    53→
+    54→interface OrgOption { id: string; name: string }
+    55→
+    56→const emptyRow = (): JobHistoryRow => ({ position: '', duties: '', fromDate: '', toDate: '', changeReason: '' })
+    57→
+    58→function ProgressSteps({ step }: { step: 1 | 2 }) {
+    59→  const labels = ['مشخصات فردی', 'اطلاعات مراجعه']
+    60→  return (
+    61→    <div className="flex flex-wrap items-center gap-2">
+    62→      {labels.map((label, i) => {
+    63→        const n = (i + 1) as 1 | 2
+    64→        const active = step === n
+    65→        const done = step > n
+    66→        return (
+    67→          <div key={label} className="flex items-center gap-2">
+    68→            <div
+    69→              className={`flex size-8 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors ${
+    70→                done
+    71→                  ? 'border-emerald-500 bg-emerald-500 text-white'
+    72→                  : active
+    73→                    ? 'border-teal-600 bg-teal-600 text-white'
+    74→                    : 'border-slate-300 bg-white text-slate-400'
+    75→              }`}
+    76→            >
+    77→              {done ? <CheckCircle2 className="size-4" /> : toFa(n)}
+    78→            </div>
+    79→            <span className={`text-sm ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>{label}</span>
+    80→            {i < labels.length - 1 && <span className="h-px w-6 bg-border sm:w-14" />}
+    81→          </div>
+    82→        )
+    83→      })}
+    84→    </div>
+    85→  )
+    86→}
+    87→
+    88→export function ReceptionView() {
+    89→  const openCase = useAppStore((s) => s.openCase)
+    90→
+    91→  const [step, setStep] = useState<1 | 2>(1)
+    92→  const [busy, setBusy] = useState(false)
+    93→  const [searching, setSearching] = useState(false)
+    94→  const [foundPerson, setFoundPerson] = useState<PersonSearchItem | null>(null)
+    95→  const [notFound, setNotFound] = useState(false)
+    96→
+    97→  // ── مرحله ۱: مشخصات فردی ──
+    98→  const [nationalId, setNationalId] = useState('')
+    99→  const [firstName, setFirstName] = useState('')
+   100→  const [lastName, setLastName] = useState('')
+   101→  const [fatherName, setFatherName] = useState('')
+   102→  const [gender, setGender] = useState('MALE')
+   103→  const [birthYear, setBirthYear] = useState('')
+   104→  const [birthDate, setBirthDate] = useState('')
+   105→  const [maritalStatus, setMaritalStatus] = useState('')
+   106→  const [childrenCount, setChildrenCount] = useState('')
+   107→  const [education, setEducation] = useState('')
+   108→  const [phone, setPhone] = useState('')
+   109→  const [insuranceNo, setInsuranceNo] = useState('')
+   110→  const [militaryStatus, setMilitaryStatus] = useState('')
+   111→  const [militaryUnit, setMilitaryUnit] = useState('')
+   112→  const [militaryExemption, setMilitaryExemption] = useState('')
+   113→  const [photo, setPhoto] = useState('')
+   114→
+   115→  // ── مرحله ۲: اطلاعات مراجعه ──
+   116→  const [examType, setExamType] = useState('PRE_EMPLOYMENT')
+   117→  const [visitDate, setVisitDate] = useState(todayJalali())
+   118→  const [workPlace, setWorkPlace] = useState('')
+   119→  const [jobTitle, setJobTitle] = useState('')
+   120→  const [workUnit, setWorkUnit] = useState('')
+   121→  const [groupType, setGroupType] = useState('CONTRACTOR')
+   122→  const [companyId, setCompanyId] = useState('')
+   123→  const [contractorId, setContractorId] = useState('')
+   124→  const [projectId, setProjectId] = useState('')
+   125→  const [companies, setCompanies] = useState<OrgOption[]>([])
+   126→  const [contractors, setContractors] = useState<OrgOption[]>([])
+   127→  const [projects, setProjects] = useState<OrgOption[]>([])
+   128→  const [jobRows, setJobRows] = useState<JobHistoryRow[]>([emptyRow()])
+   129→
+   130→  useEffect(() => {
+   131→    apiGet<OrgOption[]>('/api/companies').then(setCompanies).catch(() => {})
+   132→    apiGet<OrgOption[]>('/api/contractors').then(setContractors).catch(() => {})
+   133→    apiGet<OrgOption[]>('/api/projects').then(setProjects).catch(() => {})
+   134→  }, [])
+   135→
+   136→  const searchPerson = async () => {
+   137→    const q = toEn(nationalId).replace(/\D/g, '')
+   138→    if (q.length < 2) {
+   139→      toast.error('کد ملی یا نام را برای جست‌وجو وارد کنید')
+   140→      return
+   141→    }
+   142→    setSearching(true)
+   143→    setNotFound(false)
+   144→    try {
+   145→      const r = await apiGet<{ items: PersonSearchItem[] }>(`/api/persons?q=${encodeURIComponent(q)}`)
+   146→      const exact = (r.items || []).find((p) => p.nationalId === q)
+   147→      if (exact) {
+   148→        setFoundPerson(exact)
+   149→        // پیش‌پر کردن فرم از پرونده قبلی
+   150→        setNationalId(exact.nationalId)
+   151→        setFirstName(exact.firstName || '')
+   152→        setLastName(exact.lastName || '')
+   153→        setFatherName(exact.fatherName || '')
+   154→        setGender(exact.gender || 'MALE')
+   155→        setBirthYear(exact.birthYear || '')
+   156→        setBirthDate(exact.birthDate || '')
+   157→        setMaritalStatus(exact.maritalStatus || '')
+   158→        setChildrenCount(exact.childrenCount !== null && exact.childrenCount !== undefined ? String(exact.childrenCount) : '')
+   159→        setEducation(exact.education || '')
+   160→        setPhone(exact.phone || '')
+   161→        setInsuranceNo(exact.insuranceNo || '')
+   162→        setMilitaryStatus(exact.militaryStatus || '')
+   163→        setMilitaryUnit(exact.militaryUnit || '')
+   164→        setMilitaryExemption(exact.militaryExemption || '')
+   165→        setPhoto(exact.photo || '')
+   166→        toast.success('اطلاعات از پرونده قبلی بارگذاری شد')
+   167→      } else {
+   168→        setFoundPerson(null)
+   169→        setNotFound(true)
+   170→      }
+   171→    } catch (e) {
+   172→      toast.error(e instanceof Error ? e.message : 'خطا در جست‌وجو')
+   173→    } finally {
+   174→      setSearching(false)
+   175→    }
+   176→  }
+   177→
+   178→  const onPhotoChange = (file: File | undefined) => {
+   179→    if (!file) return
+   180→    const reader = new FileReader()
+   181→    reader.onload = () => {
+   182→      const img = new Image()
+   183→      img.onload = () => {
+   184→        const max = 240
+   185→        const scale = Math.min(1, max / Math.max(img.width, img.height))
+   186→        const w = Math.round(img.width * scale)
+   187→        const h = Math.round(img.height * scale)
+   188→        const canvas = document.createElement('canvas')
+   189→        canvas.width = w
+   190→        canvas.height = h
+   191→        const ctx = canvas.getContext('2d')
+   192→        if (!ctx) return
+   193→        ctx.drawImage(img, 0, 0, w, h)
+   194→        setPhoto(canvas.toDataURL('image/jpeg', 0.85))
+   195→      }
+   196→      img.src = String(reader.result)
+   197→    }
+   198→    reader.readAsDataURL(file)
+   199→  }
+   200→
+   201→  const goStep2 = () => {
+   202→    const nid = toEn(nationalId).replace(/\D/g, '')
+   203→    if (!/^\d{8,12}$/.test(nid)) {
+   204→      toast.error('کد ملی باید بین ۸ تا ۱۲ رقم باشد')
+   205→      return
+   206→    }
+   207→    if (!firstName.trim() || !lastName.trim()) {
+   208→      toast.error('نام و نام خانوادگی الزامی است')
+   209→      return
+   210→    }
+   211→    setStep(2)
+   212→  }
+   213→
+   214→  const updateJobRow = (i: number, patch: Partial<JobHistoryRow>) =>
+   215→    setJobRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+   216→
+   217→  const submit = async () => {
+   218→    if (!examType || !groupType) {
+   219→      toast.error('نوع معاینه و گروه هدف را انتخاب کنید')
+   220→      return
+   221→    }
+   222→    if (!visitDate || !workPlace.trim() || !jobTitle.trim()) {
+   223→      toast.error('تاریخ مراجعه، محل کار و عنوان شغل الزامی است')
+   224→      return
+   225→    }
+   226→    if (!jobRows.some((r) => r.position?.trim())) {
+   227→      toast.error('حداقل یک شغل فعلی با عنوان شغل وارد کنید (سوابق شغلی بخش ۲)')
+   228→      return
+   229→    }
+   230→    setBusy(true)
+   231→    try {
+   232→      const payload: Record<string, unknown> = {
+   233→        examType,
+   234→        groupType,
+   235→        visitDate,
+   236→        workPlace: workPlace.trim(),
+   237→        jobTitle: jobTitle.trim(),
+   238→        workUnit: workUnit.trim() || undefined,
+   239→        companyId: companyId || undefined,
+   240→        contractorId: contractorId || undefined,
+   241→        projectId: projectId || undefined,
+   242→        section2: {
+   243→          current: jobRows.filter((r) => r.position?.trim() || r.duties?.trim() || r.fromDate || r.toDate || r.changeReason?.trim()),
+   244→          previous: [],
+   245→        },
+   246→      }
+   247→      if (foundPerson?.id) {
+   248→        payload.personId = foundPerson.id
+   249→      } else {
+   250→        payload.person = {
+   251→          nationalId: toEn(nationalId).replace(/\D/g, ''),
+   252→          firstName: firstName.trim(),
+   253→          lastName: lastName.trim(),
+   254→          fatherName: fatherName.trim() || undefined,
+   255→          gender,
+   256→          birthYear: birthYear || undefined,
+   257→          birthDate: birthDate || undefined,
+   258→          maritalStatus: maritalStatus || undefined,
+   259→          childrenCount: childrenCount || undefined,
+   260→          education: education || undefined,
+   261→          phone: phone || undefined,
+   262→          insuranceNo: insuranceNo || undefined,
+   263→          militaryStatus: gender === 'MALE' ? militaryStatus || undefined : undefined,
+   264→          militaryUnit: gender === 'MALE' ? militaryUnit.trim() || undefined : undefined,
+   265→          militaryExemption: gender === 'MALE' ? militaryExemption.trim() || undefined : undefined,
+   266→          photo: photo || undefined,
+   267→        }
+   268→      }
+   269→      const r = await apiPost<{ id: string; caseNumber: string }>('/api/cases', payload)
+   270→      toast.success(`پرونده ${toFa(r.caseNumber)} ایجاد شد`)
+   271→      openCase(r.id)
+   272→    } catch (e) {
+   273→      const msg = e instanceof Error ? e.message : 'خطای نامشخص'
+   274→      toast.error(msg)
+   275→      // کد ملی تکراری: فرد موجود را پیدا و prefill می‌کنیم تا با personId ثبت شود
+   276→      if (msg.includes('قبلاً ثبت شده')) {
+   277→        setStep(1)
+   278→        await searchPerson()
+   279→        toast.info('اطلاعات فرد موجود بارگذاری شد؛ دوباره «ثبت پذیرش» را بزنید')
+   280→      }
+   281→    } finally {
+   282→      setBusy(false)
+   283→    }
+   284→  }
+   285→
+   286→  const nid = toEn(nationalId).replace(/\D/g, '')
+   287→
+   288→  return (
+   289→    <div className="space-y-6">
+   290→      <div className="flex flex-wrap items-center justify-between gap-3">
+   291→        <div>
+   292→          <h1 className="flex items-center gap-2 text-xl font-bold">
+   293→            <UserPlus className="size-5 text-teal-600" />
+   294→            پذیرش جدید
+   295→          </h1>
+   296→          <p className="text-sm text-muted-foreground">تشکیل پرونده پزشکی شاغل</p>
+   297→        </div>
+   298→        <ProgressSteps step={step} />
+   299→      </div>
+   300→
+   301→      {step === 1 && (
+   302→        <Card>
+   303→          <CardHeader>
+   304→            <CardTitle className="text-base">مشخصات فردی</CardTitle>
+   305→          </CardHeader>
+   306→          <CardContent className="space-y-4">
+   307→            {foundPerson && (
+   308→              <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800">
+   309→                <CheckCircle2 className="size-4" />
+   310→                <AlertTitle>پرونده قبلی یافت شد</AlertTitle>
+   311→                <AlertDescription>
+   312→                  {toFa(foundPerson.casesCount)} مراجعه ثبت‌شده — سوابق قابل مشاهده در صفحه پرونده‌ها است.
+   313→                </AlertDescription>
+   314→              </Alert>
+   315→            )}
+   316→            {!foundPerson && notFound && (
+   317→              <Alert className="border-slate-200 bg-slate-50 text-slate-600">
+   318→                <AlertDescription>پرونده قبلی با این کد ملی یافت نشد — اطلاعات جدید ثبت می‌شود.</AlertDescription>
+   319→              </Alert>
+   320→            )}
+   321→
+   322→            {/* کد ملی + جست‌وجو */}
+   323→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+   324→              <div className="space-y-1.5">
+   325→                <Label>کد ملی (اجباری)</Label>
+   326→                <Input
+   327→                  value={nationalId}
+   328→                  onChange={(e) => setNationalId(toEn(e.target.value).replace(/\D/g, '').slice(0, 12))}
+   329→                  inputMode="numeric"
+   330→                  dir="ltr"
+   331→                  placeholder="مثلاً 1234567890"
+   332→                  className="max-w-[240px]"
+   333→                />
+   334→                {nid && !/^\d{8,12}$/.test(nid) && (
+   335→                  <p className="text-xs text-rose-600">کد ملی باید بین ۸ تا ۱۲ رقم باشد</p>
+   336→                )}
+   337→              </div>
+   338→              <Button variant="outline" onClick={searchPerson} disabled={searching}>
+   339→                {searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+   340→                جست‌وجوی پرونده قبلی
+   341→              </Button>
+   342→            </div>
+   343→
+   344→            <Separator />
+   345→
+   346→            {/* عکس پرسنلی + نام */}
+   347→            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[auto_1fr]">
+   348→              <div className="space-y-2">
+   349→                <Label className="text-xs">عکس پرسنلی</Label>
+   350→                <div className="flex items-center gap-3">
+   351→                  <Avatar className="size-20 border">
+   352→                    {photo ? <AvatarImage src={photo} alt="عکس پرسنلی" /> : null}
+   353→                    <AvatarFallback className="bg-teal-50 text-teal-700">
+   354→                      {firstName ? firstName[0] : <Camera className="size-6" />}
+   355→                    </AvatarFallback>
+   356→                  </Avatar>
+   357→                  <div className="space-y-1">
+   358→                    <Input type="file" accept="image/*" onChange={(e) => onPhotoChange(e.target.files?.[0])} className="w-56 text-xs" disabled={busy} />
+   359→                    {photo && (
+   360→                      <Button type="button" variant="ghost" size="sm" className="h-6 text-xs text-rose-600" onClick={() => setPhoto('')}>
+   361→                        <Trash2 className="size-3" /> حذف عکس
+   362→                      </Button>
+   363→                    )}
+   364→                  </div>
+   365→                </div>
+   366→              </div>
+   367→              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+   368→                <div className="space-y-1.5">
+   369→                  <Label>نام (اجباری)</Label>
+   370→                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+   371→                </div>
+   372→                <div className="space-y-1.5">
+   373→                  <Label>نام خانوادگی (اجباری)</Label>
+   374→                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+   375→                </div>
+   376→                <div className="space-y-1.5">
+   377→                  <Label>نام پدر</Label>
+   378→                  <Input value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
+   379→                </div>
+   380→                <div className="space-y-1.5">
+   381→                  <Label>جنسیت</Label>
+   382→                  <Select value={gender} onValueChange={setGender}>
+   383→                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+   384→                    <SelectContent dir="rtl">
+   385→                      {Object.entries(GENDER_LABELS).map(([k, v]) => (
+   386→                        <SelectItem key={k} value={k}>{v}</SelectItem>
+   387→                      ))}
+   388→                    </SelectContent>
+   389→                  </Select>
+   390→                </div>
+   391→                <div className="space-y-1.5">
+   392→                  <Label>سال تولد (۴ رقم)</Label>
+   393→                  <Input
+   394→                    value={birthYear}
+   395→                    onChange={(e) => setBirthYear(toEn(e.target.value).replace(/\D/g, '').slice(0, 4))}
+   396→                    inputMode="numeric"
+   397→                    dir="ltr"
+   398→                    placeholder="1362"
+   399→                  />
+   400→                </div>
+   401→                <div className="space-y-1.5">
+   402→                  <Label className="text-xs">تاریخ تولد (اختیاری)</Label>
+   403→                  <JalaliDateInput value={birthDate} onChange={setBirthDate} />
+   404→                </div>
+   405→                <div className="space-y-1.5">
+   406→                  <Label>وضعیت تأهل</Label>
+   407→                  <Select value={maritalStatus || undefined} onValueChange={setMaritalStatus}>
+   408→                    <SelectTrigger className="w-full"><SelectValue placeholder="انتخاب" /></SelectTrigger>
+   409→                    <SelectContent dir="rtl">
+   410→                      {Object.entries(MARITAL_LABELS).map(([k, v]) => (
+   411→                        <SelectItem key={k} value={k}>{v}</SelectItem>
+   412→                      ))}
+   413→                    </SelectContent>
+   414→                  </Select>
+   415→                </div>
+   416→                <div className="space-y-1.5">
+   417→                  <Label>تعداد فرزند</Label>
+   418→                  <Input
+   419→                    value={childrenCount}
+   420→                    onChange={(e) => setChildrenCount(toEn(e.target.value).replace(/\D/g, '').slice(0, 2))}
+   421→                    inputMode="numeric"
+   422→                    dir="ltr"
+   423→                  />
+   424→                </div>
+   425→                <div className="space-y-1.5">
+   426→                  <Label>تحصیلات</Label>
+   427→                  <Select value={education || undefined} onValueChange={setEducation}>
+   428→                    <SelectTrigger className="w-full"><SelectValue placeholder="انتخاب" /></SelectTrigger>
+   429→                    <SelectContent dir="rtl">
+   430→                      {EDUCATION_OPTIONS.map((o) => (
+   431→                        <SelectItem key={o} value={o}>{o}</SelectItem>
+   432→                      ))}
+   433→                    </SelectContent>
+   434→                  </Select>
+   435→                </div>
+   436→                <div className="space-y-1.5">
+   437→                  <Label>تلفن همراه</Label>
+   438→                  <Input
+   439→                    value={phone}
+   440→                    onChange={(e) => setPhone(toEn(e.target.value).replace(/[^\d+]/g, '').slice(0, 13))}
+   441→                    inputMode="tel"
+   442→                    dir="ltr"
+   443→                  />
+   444→                </div>
+   445→                <div className="space-y-1.5">
+   446→                  <Label>شماره بیمه</Label>
+   447→                  <Input
+   448→                    value={insuranceNo}
+   449→                    onChange={(e) => setInsuranceNo(toEn(e.target.value).replace(/\D/g, '').slice(0, 20))}
+   450→                    inputMode="numeric"
+   451→                    dir="ltr"
+   452→                  />
+   453→                </div>
+   454→              </div>
+   455→            </div>
+   456→
+   457→            {/* نظام وظیفه — فقط آقایان */}
+   458→            {gender === 'MALE' && (
+   459→              <div className="grid grid-cols-1 gap-3 rounded-lg border bg-slate-50/40 p-3 sm:grid-cols-3">
+   460→                <div className="space-y-1.5">
+   461→                  <Label className="text-xs">وضعیت نظام وظیفه</Label>
+   462→                  <Select value={militaryStatus || undefined} onValueChange={setMilitaryStatus}>
+   463→                    <SelectTrigger className="w-full"><SelectValue placeholder="انتخاب" /></SelectTrigger>
+   464→                    <SelectContent dir="rtl">
+   465→                      {Object.entries(MILITARY_LABELS).map(([k, v]) => (
+   466→                        <SelectItem key={k} value={k}>{v}</SelectItem>
+   467→                      ))}
+   468→                    </SelectContent>
+   469→                  </Select>
+   470→                </div>
+   471→                <div className="space-y-1.5">
+   472→                  <Label className="text-xs">واحد خدمت</Label>
+   473→                  <Input value={militaryUnit} onChange={(e) => setMilitaryUnit(e.target.value)} />
+   474→                </div>
+   475→                <div className="space-y-1.5">
+   476→                  <Label className="text-xs">نوع معافیت</Label>
+   477→                  <Input value={militaryExemption} onChange={(e) => setMilitaryExemption(e.target.value)} />
+   478→                </div>
+   479→              </div>
+   480→            )}
+   481→
+   482→            <div className="flex justify-end">
+   483→              <Button onClick={goStep2} disabled={busy}>
+   484→                مرحله بعد
+   485→                <ArrowLeft className="size-4" />
+   486→              </Button>
+   487→            </div>
+   488→          </CardContent>
+   489→        </Card>
+   490→      )}
+   491→
+   492→      {step === 2 && (
+   493→        <Card>
+   494→          <CardHeader>
+   495→            <CardTitle className="text-base">اطلاعات مراجعه</CardTitle>
+   496→          </CardHeader>
+   497→          <CardContent className="space-y-4">
+   498→            {/* نوع معاینه */}
+   499→            <div className="space-y-2">
+   500→              <Label>نوع معاینه</Label>
+   501→              <RadioGroup value={examType} onValueChange={setExamType} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+   502→                {Object.entries(EXAM_TYPE_LABELS).map(([k, v]) => (
+   503→                  <label
+   504→                    key={k}
+   505→                    className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm transition-colors ${
+   506→                      examType === k ? 'border-teal-300 bg-teal-50 text-teal-800' : 'bg-background hover:bg-slate-50'
+   507→                    }`}
+   508→                  >
+   509→                    <RadioGroupItem value={k} disabled={busy} />
+   510→                    {v}
+   511→                  </label>
+   512→                ))}
+   513→              </RadioGroup>
+   514→            </div>
+   515→
+   516→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+   517→              <div className="space-y-1.5">
+   518→                <Label>تاریخ مراجعه</Label>
+   519→                <JalaliDateInput value={visitDate} onChange={setVisitDate} />
+   520→              </div>
+   521→              <div className="space-y-1.5">
+   522→                <Label>محل کار (اجباری)</Label>
+   523→                <Input value={workPlace} onChange={(e) => setWorkPlace(e.target.value)} placeholder="مثلاً کارخانه نیرنگوتراکم" />
+   524→              </div>
+   525→              <div className="space-y-1.5">
+   526→                <Label>عنوان شغل (اجباری)</Label>
+   527→                <Input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="مثلاً اپراتور تراک" />
+   528→              </div>
+   529→              <div className="space-y-1.5">
+   530→                <Label>واحد کاری</Label>
+   531→                <Input value={workUnit} onChange={(e) => setWorkUnit(e.target.value)} />
+   532→              </div>
+   533→            </div>
+   534→
+   535→            {/* گروه هدف */}
+   536→            <div className="space-y-2">
+   537→              <Label>گروه هدف</Label>
+   538→              <RadioGroup value={groupType} onValueChange={setGroupType} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+   539→                {Object.entries(GROUP_TYPE_LABELS).map(([k, v]) => (
+   540→                  <label
+   541→                    key={k}
+   542→                    className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm transition-colors ${
+   543→                      groupType === k ? 'border-teal-300 bg-teal-50 text-teal-800' : 'bg-background hover:bg-slate-50'
+   544→                    }`}
+   545→                  >
+   546→                    <RadioGroupItem value={k} disabled={busy} />
+   547→                    {v}
+   548→                  </label>
+   549→                ))}
+   550→              </RadioGroup>
+   551→            </div>
+   552→
+   553→            {/* شرکت / پیمانکار / پروژه */}
+   554→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+   555→              <div className="space-y-1.5">
+   556→                <Label>شرکت (اختیاری)</Label>
+   557→                <Select value={companyId || undefined} onValueChange={(v) => setCompanyId(v)}>
+   558→                  <SelectTrigger className="w-full"><SelectValue placeholder="انتخاب شرکت" /></SelectTrigger>
+   559→                  <SelectContent dir="rtl">
+   560→                    {companies.map((c) => (
+   561→                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+   562→                    ))}
+   563→                  </SelectContent>
+   564→                </Select>
+   565→              </div>
+   566→              <div className="space-y-1.5">
+   567→                <Label>پیمانکار (اختیاری)</Label>
+   568→                <Select value={contractorId || undefined} onValueChange={(v) => setContractorId(v)}>
+   569→                  <SelectTrigger className="w-full"><SelectValue placeholder="انتخاب پیمانکار" /></SelectTrigger>
+   570→                  <SelectContent dir="rtl">
+   571→                    {contractors.map((c) => (
+   572→                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+   573→                    ))}
+   574→                  </SelectContent>
+   575→                </Select>
+   576→              </div>
+   577→              <div className="space-y-1.5">
+   578→                <Label>پروژه (اختیاری)</Label>
+   579→                <Select value={projectId || undefined} onValueChange={(v) => setProjectId(v)}>
+   580→                  <SelectTrigger className="w-full"><SelectValue placeholder="انتخاب پروژه" /></SelectTrigger>
+   581→                  <SelectContent dir="rtl">
+   582→                    {projects.map((p) => (
+   583→                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+   584→                    ))}
+   585→                  </SelectContent>
+   586→                </Select>
+   587→              </div>
+   588→            </div>
+   589→
+   590→            <Separator />
+   591→
+   592→            {/* سوابق شغلی (بخش ۲) */}
+   593→            <div className="space-y-2">
+   594→              <div className="flex items-center justify-between">
+   595→                <div className="flex items-center gap-2">
+   596→                  <span className="text-sm font-medium">سوابق شغلی (بخش ۲)</span>
+   597→                  <Badge variant="outline" className="text-[10px] text-muted-foreground">مشاغل فعلی</Badge>
+   598→                </div>
+   599→                <Button size="sm" variant="outline" onClick={() => setJobRows((prev) => [...prev, emptyRow()])}>
+   600→                  <Plus className="size-4" /> افزودن ردیف
+   601→                </Button>
+   602→              </div>
+   603→              {jobRows.map((r, i) => (
+   604→                <div key={i} className="grid grid-cols-1 gap-2 rounded-lg border bg-slate-50/40 p-3 sm:grid-cols-2 lg:grid-cols-12">
+   605→                  <div className="space-y-1 lg:col-span-3">
+   606→                    <Label className="text-xs">عنوان / سمت</Label>
+   607→                    <Input value={r.position || ''} onChange={(e) => updateJobRow(i, { position: e.target.value })} disabled={busy} />
+   608→                  </div>
+   609→                  <div className="space-y-1 lg:col-span-5">
+   610→                    <Label className="text-xs">وظایف محوله</Label>
+   611→                    <Textarea value={r.duties || ''} onChange={(e) => updateJobRow(i, { duties: e.target.value })} rows={2} disabled={busy} />
+   612→                  </div>
+   613→                  <div className="space-y-1 lg:col-span-2">
+   614→                    <Label className="text-xs">از تاریخ</Label>
+   615→                    <JalaliDateInput value={r.fromDate || ''} onChange={(v) => updateJobRow(i, { fromDate: v })} disabled={busy} />
+   616→                  </div>
+   617→                  <div className="space-y-1 lg:col-span-2">
+   618→                    <Label className="text-xs">تا تاریخ</Label>
+   619→                    <Input value={r.toDate || ''} onChange={(e) => updateJobRow(i, { toDate: e.target.value })} placeholder="اکنون یا تاریخ" disabled={busy} />
+   620→                  </div>
+   621→                  <div className="flex items-end justify-between gap-2 sm:col-span-2 lg:col-span-12">
+   622→                    <div className="flex-1 space-y-1">
+   623→                      <Label className="text-xs">علت تغییر شغل</Label>
+   624→                      <Input value={r.changeReason || ''} onChange={(e) => updateJobRow(i, { changeReason: e.target.value })} disabled={busy} />
+   625→                    </div>
+   626→                    <Button
+   627→                      size="icon"
+   628→                      variant="ghost"
+   629→                      className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+   630→                      onClick={() => setJobRows((prev) => prev.filter((_, idx) => idx !== i))}
+   631→                      disabled={busy || jobRows.length === 1}
+   632→                      aria-label="حذف ردیف"
+   633→                    >
+   634→                      <Trash2 className="size-4" />
+   635→                    </Button>
+   636→                  </div>
+   637→                </div>
+   638→              ))}
+   639→              {!jobRows.some((r) => r.position?.trim()) && (
+   640→                <p className="text-xs text-amber-600">حداقل یک ردیف با عنوان شغل پر شده لازم است.</p>
+   641→              )}
+   642→            </div>
+   643→
+   644→            <div className="flex flex-wrap items-center justify-between gap-2">
+   645→              <Button variant="outline" onClick={() => setStep(1)} disabled={busy}>
+   646→                <ArrowRight className="size-4" />
+   647→                مرحله قبل
+   648→              </Button>
+   649→              <Button onClick={submit} disabled={busy} className="bg-teal-600 hover:bg-teal-700">
+   650→                {busy ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+   651→                ثبت پذیرش و تشکیل پرونده
+   652→              </Button>
+   653→            </div>
+   654→          </CardContent>
+   655→        </Card>
+   656→      )}
+   657→    </div>
+   658→  )
+   659→}
+   660→

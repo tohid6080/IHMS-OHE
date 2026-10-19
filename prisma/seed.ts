@@ -11,7 +11,7 @@ const db = new PrismaClient()
 // ۱) اگر فایل db/demo-credentials.json وجود داشته باشد از آن خوانده می‌شود
 // ۲) وگرنه رمزهای تصادفی ساخته و در همان فایل ذخیره می‌شوند (فایل در gitignore است)
 const credFile = path.resolve(process.cwd(), 'db', 'demo-credentials.json')
-const SEED_USERS = ['admin', 'manager', 'hse', 'doctor', 'audio', 'opto', 'lab', 'employer', 'contractor1', 'contractor2', 'worker']
+const SEED_USERS = ['admin', 'manager', 'hse', 'doctor', 'audio', 'opto', 'lab', 'employer', 'contractor1', 'contractor2']
 
 function loadPasswords(): Record<string, string> {
   if (existsSync(credFile)) {
@@ -89,10 +89,6 @@ async function main() {
       gender: 'FEMALE', birthYear: '1375', maritalStatus: 'MARRIED', childrenCount: 2,
       education: 'کاردانی', phone: '09173333333',
     },
-  })
-
-  await db.user.create({
-    data: { username: 'worker', password: await pw(passwords['worker']), fullName: 'سجاد حبشی انگدر', role: 'WORKER', personId: person1.id },
   })
 
   console.log('⏳ ایجاد پرونده نمونه (تکمیل‌شده مطابق فرم پیوست)...')

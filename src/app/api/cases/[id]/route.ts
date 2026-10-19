@@ -61,8 +61,7 @@ async function loadScopedCase(session: SessionUser, id: string) {
   const allowed =
     CENTRAL_ROLES.includes(role) ||
     (role === 'EMPLOYER' && !!c.companyId && c.companyId === session.companyId) ||
-    (role === 'CONTRACTOR' && !!c.contractorId && c.contractorId === session.contractorId) ||
-    (role === 'WORKER' && c.personId === session.personId)
+    (role === 'CONTRACTOR' && !!c.contractorId && c.contractorId === session.contractorId)
   if (!allowed) throw new HttpError(404, 'پرونده یافت نشد')
   return c
 }
@@ -101,6 +100,7 @@ function toSectionDTO(s: {
   approvedByName: string | null
   approvedAt: Date | null
   approvedSignature: string | null
+  approvedStamp: string | null
   naReason: string | null
   correctionNote: string | null
   updatedAt: Date
@@ -116,6 +116,7 @@ function toSectionDTO(s: {
     approvedByName: s.approvedByName,
     approvedAt: s.approvedAt ? s.approvedAt.toISOString() : null,
     approvedSignature: s.approvedSignature,
+    approvedStamp: s.approvedStamp,
     naReason: s.naReason,
     correctionNote: s.correctionNote,
     updatedAt: s.updatedAt.toISOString(),
@@ -147,6 +148,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
             approvedByName: null,
             approvedAt: null,
             approvedSignature: null,
+            approvedStamp: null,
             naReason: null,
             correctionNote: null,
             updatedAt: c.updatedAt.toISOString(),
@@ -183,6 +185,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         finalDoctorCode: c.finalDoctorCode,
         finalDate: c.finalDate,
         finalSignature: c.finalSignature,
+        finalStamp: c.finalStamp,
         workerDeclaration: c.workerDeclaration,
         workerDeclarationName: c.workerDeclarationName,
         completedAt: c.completedAt ? c.completedAt.toISOString() : null,

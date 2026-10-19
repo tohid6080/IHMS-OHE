@@ -64,8 +64,6 @@ export async function GET(req: NextRequest) {
     } else if (session.role === 'CONTRACTOR') {
       where.contractorId = session.contractorId || '__none__'
       if (companyId) where.companyId = companyId
-    } else if (session.role === 'WORKER') {
-      where.personId = session.personId || '__none__'
     } else {
       if (companyId) where.companyId = companyId
       if (contractorId) where.contractorId = contractorId

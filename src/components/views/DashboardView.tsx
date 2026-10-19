@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle2,
   Clock,
   Eye,
   FolderOpen,
+  ListChecks,
   Share2,
   Users,
   type LucideIcon,
@@ -28,8 +30,9 @@ import { toast } from 'sonner'
 import { apiGet, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { toFa } from '@/lib/jalali'
-import { EXAM_TYPE_LABELS } from '@/lib/constants'
-import type { CaseListItem } from '@/lib/types'
+import { EXAM_TYPE_LABELS, SECTION_DEFS } from '@/lib/constants'
+import { sectionTitle } from '@/lib/case-utils'
+import type { CaseListItem, Role, SectionKey } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
@@ -97,6 +100,11 @@ interface MatrixRow {
 
 const ALL = '__all__'
 
+// نقش‌های کارشناسی: کارت «کارهای من» فقط برای آن‌ها نمایش داده می‌شود
+const SPECIALIST_ROLES: Role[] = ['HSE', 'AUDIOLOGIST', 'OPTOMETRIST', 'LAB']
+// وضعیت‌هایی که بخش هنوز «کار باز» محسوب می‌شود
+const PENDING_STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'NEEDS_CORRECTION', 'SENT_FOR_REVIEW']
+
 const OPINION_COLORS: Record<string, string> = {
   FIT: '#059669',
   CONDITIONAL: '#d97706',
@@ -140,8 +148,18 @@ function KpiCard({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: 
 }
 
 export function DashboardView() {
+  const user = useAppStore((s) => s.user)
+  const role = user?.role
   const refreshKey = useAppStore((s) => s.refreshKey)
   const openCase = useAppStore((s) => s.openCase)
+  const setView = useAppStore((s) => s.setView)
+  const isSpecialist = !!role && SPECIALIST_ROLES.includes(role)
+
+  // بخش‌هایی که نقش من ثبت‌کننده آن‌هاست (HSE→۳، اپتومتری→۷-الف، ادیولوژی→۷-ب، آزمایشگاه→۶/۷-ج/۷-د)
+  const mySectionKeys = useMemo(() => {
+    if (!role) return new Set<string>()
+    return new Set(SECTION_DEFS.filter((d) => d.editorRoles.includes(role)).map((d) => d.key as string))
+  }, [role])
 
   // ─── فیلترها ───
   const [companyId, setCompanyId] = useState('')
@@ -159,6 +177,8 @@ export function DashboardView() {
   const [loadingStats, setLoadingStats] = useState(true)
   const [recentCases, setRecentCases] = useState<CaseListItem[]>([])
   const [loadingCases, setLoadingCases] = useState(true)
+  const [myCases, setMyCases] = useState<CaseListItem[]>([])
+  const [loadingMyCases, setLoadingMyCases] = useState(true)
 
   // لیست سازمان‌ها برای فیلترها
   useEffect(() => {
@@ -213,6 +233,33 @@ export function DashboardView() {
       cancelled = true
     }
   }, [refreshKey])
+
+  // کارهای من (کارشناسان): پرونده‌هایی که حداقل یکی از بخش‌های من در آن‌ها کار باز دارد
+  useEffect(() => {
+    if (!isSpecialist) return
+    let cancelled = false
+    apiGet<{ items: CaseListItem[] }>('/api/cases')
+      .then((d) => {
+        if (cancelled) return
+        setMyCases(
+          (d.items || []).filter((it) =>
+            it.sections.some((s) => mySectionKeys.has(s.key) && PENDING_STATUSES.includes(s.status)),
+          ),
+        )
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          toast.error(e instanceof ApiError ? e.message : 'خطا در دریافت کارهای من')
+          setMyCases([])
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMyCases(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [refreshKey, isSpecialist, mySectionKeys])
 
   const tooltipStyle = {
     direction: 'rtl' as const,
@@ -329,6 +376,79 @@ export function DashboardView() {
           <KpiCard icon={Share2} label="ارجاع‌های در انتظار" value={stats.totals.pendingReferrals} tone="cyan" />
           <KpiCard icon={Users} label="مراجعه‌کنندگان یکتا" value={stats.totals.persons} tone="slate" />
         </div>
+      )}
+
+      {/* ─── کارهای من (فقط کارشناسان) ─── */}
+      {isSpecialist && (
+        <Card className="gap-3 border-teal-200 py-4">
+          <CardHeader className="px-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <ListChecks className="size-4 text-teal-600" />
+                کارهای من
+                {!loadingMyCases && myCases.length > 0 && (
+                  <Badge className="bg-teal-600 px-1.5 text-white hover:bg-teal-600">{toFa(myCases.length)}</Badge>
+                )}
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+                onClick={() => setView('cases')}
+              >
+                مشاهده همه
+                <ArrowLeft className="size-3.5" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4">
+            {loadingMyCases ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 rounded-lg" />
+                ))}
+              </div>
+            ) : myCases.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">مورد باز برای شما وجود ندارد</p>
+            ) : (
+              <div className="max-h-96 space-y-2 overflow-y-auto scrollbar-thin">
+                {myCases.slice(0, 10).map((c) => {
+                  const pending = c.sections
+                    .filter((s) => mySectionKeys.has(s.key) && PENDING_STATUSES.includes(s.status))
+                    .map((s) => sectionTitle(s.key as SectionKey))
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => openCase(c.id)}
+                      className="flex w-full cursor-pointer flex-wrap items-center justify-between gap-2 rounded-lg border bg-slate-50/60 p-3 text-right transition-colors hover:border-teal-300 hover:bg-teal-50/60"
+                      title="باز کردن پرونده"
+                    >
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-slate-500" dir="ltr">{toFa(c.caseNumber)}</span>
+                        <span className="text-sm font-medium">
+                          {c.person.firstName} {c.person.lastName}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {pending.map((p) => (
+                          <Badge
+                            key={p}
+                            variant="outline"
+                            className="border-amber-200 bg-amber-50 text-[10px] font-normal text-amber-700"
+                          >
+                            {p}
+                          </Badge>
+                        ))}
+                        <Eye className="size-4 shrink-0 text-teal-600" />
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* ─── نمودارها ─── */}

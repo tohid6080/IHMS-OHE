@@ -127,7 +127,22 @@ export function computeProgress(
 // آیا نقش به داده پزشکی تفصیلی (بخش‌های ۴ تا ۷) دسترسی دارد
 export const MEDICAL_SECTION_KEYS: SectionKey[] = ['S4', 'S5', 'S6', 'S7A', 'S7B', 'S7C', 'S7D']
 export function canSeeMedicalDetail(role: Role): boolean {
-  return !['EMPLOYER', 'CONTRACTOR', 'WORKER'].includes(role)
+  return !['EMPLOYER', 'CONTRACTOR'].includes(role)
+}
+
+// بخش‌هایی که هر نقش مجاز به دیدن آن‌هاست:
+// - مدیر/پزشک: همه بخش‌ها (نمای کلی پرونده)
+// - کارشناسان (بهداشت، ادیولوژی، اپتومتری، آزمایشگاه): فقط بخش‌های ثبت‌کننده/تأییدکننده خودشان
+// - کارفرما/پیمانکار: همه کارت‌ها ولی داده پزشکی تفصیلی محدود (redact) می‌شود
+export function visibleSectionsFor(role: Role): Set<SectionKey> {
+  const all = new Set(SECTION_DEFS.map((d) => d.key))
+  if (['ADMIN', 'MANAGER', 'DOCTOR'].includes(role)) return all
+  if (['EMPLOYER', 'CONTRACTOR'].includes(role)) return all
+  const own = new Set<SectionKey>()
+  for (const def of SECTION_DEFS) {
+    if (def.editorRoles.includes(role) || def.approverRoles.includes(role)) own.add(def.key)
+  }
+  return own
 }
 
 // متن محدودشده برای نقش‌های غیرپزشکی

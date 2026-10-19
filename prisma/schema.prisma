@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// نقش‌ها: ADMIN | MANAGER | HSE | DOCTOR | AUDIOLOGIST | OPTOMETRIST | LAB | EMPLOYER | CONTRACTOR | WORKER
+// نقش‌ها: ADMIN | MANAGER | HSE | DOCTOR | AUDIOLOGIST | OPTOMETRIST | LAB | EMPLOYER | CONTRACTOR
 model User {
   id           String      @id @default(cuid())
   username     String      @unique
@@ -16,6 +16,11 @@ model User {
   role         String
   phone        String?
   active       Boolean     @default(true)
+  // امضا و مهر کاربر (dataURL) — توسط مدیر ثبت و تأیید می‌شود
+  signatureData       String?
+  stampData           String?
+  signatureApproved   Boolean   @default(false)
+  signatureApprovedAt DateTime?
   companyId    String?
   company      Company?    @relation(fields: [companyId], references: [id])
   contractorId String?
@@ -113,6 +118,7 @@ model Case {
   finalDoctorCode       String?
   finalDate             String?
   finalSignature        String?
+  finalStamp            String?
   workerDeclaration     String? // امضای اطلاع شاغل از نتیجه (dataURL)
   workerDeclarationName String?
   completedAt           DateTime?
@@ -136,6 +142,7 @@ model CaseSection {
   approvedByName    String?
   approvedAt        DateTime?
   approvedSignature String?
+  approvedStamp     String?
   naReason          String?
   correctionNote    String?
   updatedAt         DateTime  @updatedAt

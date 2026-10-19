@@ -1,11 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Loader2, Pencil, Plus, Trash2, UserRound } from 'lucide-react'
+import { BadgeCheck, Info, KeyRound, Loader2, Pencil, PenTool, Plus, Trash2, Upload, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiDelete, apiGet, apiPatch, apiPost, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
-import { toFa } from '@/lib/jalali'
+import { formatJalaliDateTime, toFa } from '@/lib/jalali'
 import { ROLE_LABELS } from '@/lib/constants'
 import type { Role } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,8 @@ interface UserItem {
   active: boolean
   companyId: string | null
   contractorId: string | null
+  signatureApproved: boolean
+  signatureApprovedAt: string | null
   company: { name: string } | null
   contractor: { name: string } | null
 }
@@ -56,6 +59,12 @@ interface UserItem {
 interface OrgOption {
   id: string
   name: string
+}
+
+// خروجی GET /api/users/[id] — شامل تصاویر امضا و مهر (در فهرست نیستند)
+interface UserDetail extends UserItem {
+  signatureData: string | null
+  stampData: string | null
 }
 
 // نقش‌های ستادی — MANAGER فقط این نقش‌ها را می‌سازد/ویرایش می‌کند
@@ -71,8 +80,10 @@ const ROLE_BADGE: Record<string, string> = {
   LAB: 'bg-slate-500 text-white border-slate-500',
   EMPLOYER: 'bg-slate-200 text-slate-700 border-slate-300',
   CONTRACTOR: 'bg-slate-300 text-slate-800 border-slate-400',
-  WORKER: 'bg-slate-100 text-slate-600 border-slate-200',
 }
+
+// پیش‌فرض نقش ناشناخته (نقش WORKER از سامانه حذف شده است)
+const ROLE_BADGE_DEFAULT = ROLE_BADGE.HSE
 
 interface FormState {
   username: string
@@ -92,6 +103,67 @@ const EMPTY_FORM: FormState = {
   password: '',
   companyId: '',
   contractorId: '',
+}
+
+// ─── جایگاه بارگذاری تصویر امضا/مهر ───
+function ImageSlot({
+  id,
+  label,
+  value,
+  disabled,
+  onPick,
+  onRemove,
+}: {
+  id: string
+  label: string
+  value: string | null
+  disabled: boolean
+  onPick: (file: File | undefined) => void
+  onRemove: () => void
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex h-32 items-center justify-center overflow-hidden rounded-md border border-dashed bg-white">
+        {value ? (
+          <img src={value} alt={label} className="max-h-full max-w-full object-contain" />
+        ) : (
+          <span className="text-xs text-muted-foreground">تصویری ثبت نشده است</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" asChild disabled={disabled}>
+          <label htmlFor={id} className="cursor-pointer">
+            <Upload className="size-3.5" />
+            انتخاب فایل
+          </label>
+        </Button>
+        <input
+          id={id}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          disabled={disabled}
+          onChange={(e) => {
+            onPick(e.target.files?.[0])
+            e.target.value = ''
+          }}
+        />
+        {value && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+            disabled={disabled}
+            onClick={onRemove}
+          >
+            <Trash2 className="size-3.5" />
+            حذف
+          </Button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function UsersView() {
@@ -121,6 +193,15 @@ export function UsersView() {
   // ─── حذف ───
   const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // ─── Dialog امضا و مهر ───
+  const [sigUser, setSigUser] = useState<UserItem | null>(null)
+  const [sigLoading, setSigLoading] = useState(false)
+  const [sigSaving, setSigSaving] = useState(false)
+  const [approveBusy, setApproveBusy] = useState(false)
+  const [sigData, setSigData] = useState<string | null>(null)
+  const [stampData, setStampData] = useState<string | null>(null)
+  const [sigLoaded, setSigLoaded] = useState<{ signatureData: string | null; stampData: string | null } | null>(null)
 
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
@@ -174,6 +255,9 @@ export function UsersView() {
         toast.error('رمز عبور باید حداقل ۵ کاراکتر باشد')
         return
       }
+    } else if (form.password && form.password.length < 5) {
+      toast.error('رمز عبور باید حداقل ۵ کاراکتر باشد')
+      return
     }
     if (form.role === 'EMPLOYER' && !form.companyId) {
       toast.error('برای کاربر کارفرما، انتخاب شرکت الزامی است')
@@ -251,6 +335,110 @@ export function UsersView() {
     }
   }
 
+  // ─── امضا و مهر ───
+  function openSignature(u: UserItem) {
+    setSigUser(u)
+    setSigData(null)
+    setStampData(null)
+    setSigLoaded(null)
+    setSigLoading(true)
+    apiGet<UserDetail>(`/api/users/${u.id}`)
+      .then((d) => {
+        setSigData(d.signatureData)
+        setStampData(d.stampData)
+        setSigLoaded({ signatureData: d.signatureData, stampData: d.stampData })
+      })
+      .catch((e) => {
+        toast.error(e instanceof ApiError ? e.message : 'خطا')
+        setSigUser(null)
+      })
+      .finally(() => setSigLoading(false))
+  }
+
+  // انتخاب فایل → کوچک‌سازی سمت کلاینت (حداکثر ۴۰۰px) → dataURL (PNG برای حفظ شفافیت امضا)
+  function pickSignatureImage(file: File | undefined, target: 'signature' | 'stamp') {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('لطفاً فقط فایل تصویر انتخاب کنید')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const max = 400
+        const scale = Math.min(1, max / Math.max(img.width, img.height))
+        const w = Math.max(1, Math.round(img.width * scale))
+        const h = Math.max(1, Math.round(img.height * scale))
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          toast.error('خطا در پردازش تصویر')
+          return
+        }
+        ctx.drawImage(img, 0, 0, w, h)
+        const dataURL = canvas.toDataURL('image/png')
+        if (target === 'signature') setSigData(dataURL)
+        else setStampData(dataURL)
+      }
+      img.onerror = () => toast.error('فایل تصویر قابل خواندن نیست')
+      img.src = String(reader.result)
+    }
+    reader.onerror = () => toast.error('خطا در خواندن فایل')
+    reader.readAsDataURL(file)
+  }
+
+  async function handleSaveSignatures() {
+    if (!sigUser || !sigLoaded) return
+    const body: { signatureData?: string | null; stampData?: string | null } = {}
+    if (sigData !== sigLoaded.signatureData) body.signatureData = sigData
+    if (stampData !== sigLoaded.stampData) body.stampData = stampData
+    if (body.signatureData === undefined && body.stampData === undefined) {
+      toast.info('تغییری برای ذخیره وجود ندارد')
+      return
+    }
+    setSigSaving(true)
+    try {
+      const updated = await apiPatch<UserDetail>(`/api/users/${sigUser.id}`, body)
+      setSigData(updated.signatureData)
+      setStampData(updated.stampData)
+      setSigLoaded({ signatureData: updated.signatureData, stampData: updated.stampData })
+      if (body.signatureData !== undefined && !body.signatureData) {
+        // حذف امضا → سرور تأیید امضا را خودکار لغو می‌کند
+        const revoke = (x: UserItem): UserItem => ({ ...x, signatureApproved: false, signatureApprovedAt: null })
+        setUsers((prev) => prev.map((x) => (x.id === sigUser.id ? revoke(x) : x)))
+        setSigUser((prev) => (prev && prev.id === sigUser.id ? revoke(prev) : prev))
+      }
+      toast.success('تصاویر امضا و مهر ذخیره شد')
+      refresh()
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'خطا')
+    } finally {
+      setSigSaving(false)
+    }
+  }
+
+  async function handleToggleSignatureApproval(approved: boolean) {
+    if (!sigUser) return
+    setApproveBusy(true)
+    try {
+      await apiPatch(`/api/users/${sigUser.id}`, { signatureApproved: approved })
+      const at = approved ? new Date().toISOString() : null
+      const patch = (x: UserItem): UserItem => ({ ...x, signatureApproved: approved, signatureApprovedAt: at })
+      setUsers((prev) => prev.map((x) => (x.id === sigUser.id ? patch(x) : x)))
+      setSigUser((prev) => (prev && prev.id === sigUser.id ? patch(prev) : prev))
+      if (approved) toast.success('امضا تأیید شد؛ این کاربر می‌تواند در بخش‌ها امضا کند')
+      else toast.success('تأیید امضا لغو شد')
+      refresh()
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'خطا')
+    } finally {
+      setApproveBusy(false)
+    }
+  }
+
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
@@ -308,7 +496,18 @@ export function UsersView() {
                   <td className="px-3 py-2 font-mono text-xs" dir="ltr">{u.username}</td>
                   <td className="hidden md:table-cell px-3 py-2 tabular-nums text-xs">{u.phone ? toFa(u.phone) : '—'}</td>
                   <td className="px-3 py-2">
-                    <Badge className={`${ROLE_BADGE[u.role] || ROLE_BADGE.WORKER} border`}>{ROLE_LABELS[u.role]}</Badge>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <Badge className={`${ROLE_BADGE[u.role] || ROLE_BADGE_DEFAULT} border`}>{ROLE_LABELS[u.role]}</Badge>
+                      {u.signatureApproved && (
+                        <Badge
+                          className="border-emerald-300 bg-emerald-50 text-emerald-700"
+                          title={u.signatureApprovedAt ? formatJalaliDateTime(u.signatureApprovedAt) : undefined}
+                        >
+                          <BadgeCheck className="size-3" />
+                          امضا
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="hidden lg:table-cell px-3 py-2 text-xs text-muted-foreground">
                     {u.company?.name || u.contractor?.name || '—'}
@@ -330,6 +529,9 @@ export function UsersView() {
                       <div className="flex items-center justify-center gap-1">
                         <Button variant="ghost" size="icon" className="size-7 text-teal-700 hover:bg-teal-50" onClick={() => openEdit(u)} aria-label="ویرایش">
                           <Pencil className="size-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="size-7 text-indigo-600 hover:bg-indigo-50" onClick={() => openSignature(u)} aria-label="امضا و مهر" title="امضا و مهر">
+                          <PenTool className="size-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="size-7 text-amber-600 hover:bg-amber-50" onClick={() => { setPwUser(u); setNewPassword('') }} aria-label="تغییر رمز">
                           <KeyRound className="size-3.5" />
@@ -381,7 +583,7 @@ export function UsersView() {
                   className="text-left font-mono"
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  placeholder="username"
+                  placeholder="مثلاً admin"
                   autoComplete="off"
                 />
               </div>
@@ -495,6 +697,83 @@ export function UsersView() {
             <Button onClick={handleChangePassword} disabled={pwSaving} className="bg-amber-600 hover:bg-amber-700 text-white">
               {pwSaving && <Loader2 className="size-4 animate-spin" />}
               تغییر رمز
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Dialog امضا و مهر ─── */}
+      <Dialog open={!!sigUser} onOpenChange={(v) => !v && setSigUser(null)}>
+        <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PenTool className="size-4 text-teal-700" />
+              امضا و مهر {sigUser ? `«${sigUser.fullName}»` : ''}
+            </DialogTitle>
+            <DialogDescription>
+              تصاویر امضا و مهر این کاربر برای درج در تأییدیه‌های سامانه استفاده می‌شود.
+            </DialogDescription>
+          </DialogHeader>
+          {sigLoading ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              در حال بارگذاری تصاویر…
+            </div>
+          ) : (
+            <div className="space-y-3 py-1">
+              <Alert className="border-teal-200 bg-teal-50/60 text-teal-900">
+                <Info className="size-4 text-teal-600" />
+                <AlertDescription className="text-xs leading-5">
+                  امضای تأییدشده به‌صورت خودکار پای تأییدیه‌های همین کاربر در پرونده‌ها درج می‌شود.
+                </AlertDescription>
+              </Alert>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ImageSlot
+                  id="signature-upload"
+                  label="تصویر امضا"
+                  value={sigData}
+                  disabled={sigSaving}
+                  onPick={(f) => pickSignatureImage(f, 'signature')}
+                  onRemove={() => setSigData(null)}
+                />
+                <ImageSlot
+                  id="stamp-upload"
+                  label="تصویر مهر"
+                  value={stampData}
+                  disabled={sigSaving}
+                  onPick={(f) => pickSignatureImage(f, 'stamp')}
+                  onRemove={() => setStampData(null)}
+                />
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/40 p-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">تأیید امضا</span>
+                    {sigUser?.signatureApproved && (
+                      <Badge className="border-emerald-300 bg-emerald-100 text-emerald-800">
+                        <BadgeCheck className="size-3" />
+                        تأییدشده{sigUser.signatureApprovedAt ? ` — ${formatJalaliDateTime(sigUser.signatureApprovedAt)}` : ''}
+                      </Badge>
+                    )}
+                  </div>
+                  {!sigData && (
+                    <p className="text-xs text-muted-foreground">برای تأیید، ابتدا تصویر امضا را انتخاب و ذخیره کنید.</p>
+                  )}
+                </div>
+                <Switch
+                  checked={!!sigUser?.signatureApproved}
+                  disabled={!sigData || approveBusy}
+                  onCheckedChange={handleToggleSignatureApproval}
+                  aria-label="تأیید امضا"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setSigUser(null)} disabled={sigSaving}>بستن</Button>
+            <Button onClick={handleSaveSignatures} disabled={sigLoading || sigSaving} className="bg-teal-700 hover:bg-teal-800">
+              {sigSaving && <Loader2 className="size-4 animate-spin" />}
+              ذخیره تصاویر
             </Button>
           </DialogFooter>
         </DialogContent>

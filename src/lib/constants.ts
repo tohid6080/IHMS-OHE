@@ -11,7 +11,6 @@ export const ROLE_LABELS: Record<Role, string> = {
   LAB: 'کاربر آزمایشگاه',
   EMPLOYER: 'کارفرما',
   CONTRACTOR: 'پیمانکار',
-  WORKER: 'مراجعه‌کننده',
 }
 
 export const EXAM_TYPE_LABELS: Record<string, string> = {

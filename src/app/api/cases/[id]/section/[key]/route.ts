@@ -8,7 +8,7 @@ import type { Role, SectionDTO, SectionKey, SectionStatus, SessionUser } from '@
 
 const CENTRAL_ROLES: Role[] = ['ADMIN', 'MANAGER', 'DOCTOR', 'HSE', 'AUDIOLOGIST', 'OPTOMETRIST', 'LAB']
 // نقش‌های بیرونی: فقط مشاهده، هیچ تغییری مجاز نیست
-const NO_ACCESS_ROLES: Role[] = ['EMPLOYER', 'CONTRACTOR', 'WORKER']
+const NO_ACCESS_ROLES: Role[] = ['EMPLOYER', 'CONTRACTOR']
 const EDITABLE_STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'NEEDS_CORRECTION']
 const FINAL_STATUSES = ['APPROVED', 'NOT_APPLICABLE']
 const ACTIONS = ['save', 'submit', 'approve', 'reject', 'na', 'reopen']
@@ -31,8 +31,7 @@ function assertCanView(
   const ok =
     CENTRAL_ROLES.includes(role) ||
     (role === 'EMPLOYER' && !!c.companyId && c.companyId === session.companyId) ||
-    (role === 'CONTRACTOR' && !!c.contractorId && c.contractorId === session.contractorId) ||
-    (role === 'WORKER' && c.personId === session.personId)
+    (role === 'CONTRACTOR' && !!c.contractorId && c.contractorId === session.contractorId)
   if (!ok) throw new HttpError(404, 'پرونده یافت نشد')
 }
 
@@ -80,6 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       approvedByName?: string | null
       approvedAt?: Date | null
       approvedSignature?: string | null
+      approvedStamp?: string | null
       naReason?: string | null
       correctionNote?: string | null
     } = {}
@@ -119,9 +119,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       update.approvedByName = String(body.name || '').trim() || session.fullName
       update.approvedAt = now
       update.approvedSignature = String(body.signature || '').trim() || null
+      update.approvedStamp = String(body.stamp || '').trim() || null
       update.naReason = null
       update.correctionNote = null
-      historyAction = `تأیید ${sectionTitle(sectionKey)}`
+      historyAction = `تأیید و درج امضا و مهر ${sectionTitle(sectionKey)}`
     } else if (action === 'reject') {
       if (!canApproveSection(session.role, sectionKey)) throw new HttpError(403, 'شما اجازه بررسی این بخش را ندارید')
       if (!note) throw new HttpError(400, 'دلیل نیاز به اصلاح الزامی است')
@@ -137,6 +138,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       update.approvedByName = String(body.name || '').trim() || session.fullName
       update.approvedAt = now
       update.approvedSignature = String(body.signature || '').trim() || null
+      update.approvedStamp = String(body.stamp || '').trim() || null
       historyAction = `نامرتبط اعلام شدن ${sectionTitle(sectionKey)}`
       historyDetail = note
     } else {
@@ -199,6 +201,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       approvedByName: saved.approvedByName,
       approvedAt: saved.approvedAt ? saved.approvedAt.toISOString() : null,
       approvedSignature: saved.approvedSignature,
+      approvedStamp: saved.approvedStamp,
       naReason: saved.naReason,
       correctionNote: saved.correctionNote,
       updatedAt: saved.updatedAt.toISOString(),

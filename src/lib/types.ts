@@ -10,7 +10,6 @@ export type Role =
   | 'LAB'
   | 'EMPLOYER'
   | 'CONTRACTOR'
-  | 'WORKER'
 
 export type SectionKey = 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7A' | 'S7B' | 'S7C' | 'S7D' | 'S8' | 'S9'
 
@@ -36,6 +35,10 @@ export interface SessionUser {
   companyId?: string | null
   contractorId?: string | null
   personId?: string | null
+  /** امضا و مهر ثبت‌شده توسط مدیر (dataURL) — فقط در پاسخ me/login پر می‌شود */
+  signatureData?: string | null
+  stampData?: string | null
+  signatureApproved?: boolean
 }
 
 // ─── بخش ۲: سوابق شغلی ───
@@ -209,6 +212,7 @@ export interface SectionDTO {
   approvedByName?: string | null
   approvedAt?: string | null
   approvedSignature?: string | null
+  approvedStamp?: string | null
   naReason?: string | null
   correctionNote?: string | null
   updatedAt: string
@@ -281,6 +285,7 @@ export interface CaseDetailDTO {
     finalDoctorCode?: string | null
     finalDate?: string | null
     finalSignature?: string | null
+    finalStamp?: string | null
     workerDeclaration?: string | null
     workerDeclarationName?: string | null
     completedAt?: string | null

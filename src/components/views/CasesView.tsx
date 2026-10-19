@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Eye, FolderOpen, Printer, Plus } from 'lucide-react'
+import { Eye, FolderOpen, ListChecks, Printer, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -16,15 +16,20 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { FinalOpinionBadge } from '@/components/common/StatusBadge'
+import { Toggle } from '@/components/ui/toggle'
 import { apiGet } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { toFa } from '@/lib/jalali'
-import { EXAM_TYPE_LABELS, GROUP_TYPE_LABELS } from '@/lib/constants'
-import type { CaseListItem } from '@/lib/types'
+import { EXAM_TYPE_LABELS, GROUP_TYPE_LABELS, SECTION_DEFS } from '@/lib/constants'
+import type { CaseListItem, Role } from '@/lib/types'
 
 interface OrgOption { id: string; name: string }
 
-const OUTSIDE_ROLES = ['EMPLOYER', 'CONTRACTOR', 'WORKER']
+const OUTSIDE_ROLES = ['EMPLOYER', 'CONTRACTOR']
+// نقش‌های کارشناسی: فیلتر «فقط کارهای من» فقط برای آن‌ها نمایش داده می‌شود
+const SPECIALIST_ROLES: Role[] = ['HSE', 'AUDIOLOGIST', 'OPTOMETRIST', 'LAB']
+// وضعیت‌هایی که بخش هنوز «کار باز» محسوب می‌شود
+const PENDING_STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'NEEDS_CORRECTION', 'SENT_FOR_REVIEW']
 
 export function CasesView() {
   const user = useAppStore((s) => s.user)
@@ -33,8 +38,8 @@ export function CasesView() {
   const openPrint = useAppStore((s) => s.openPrint)
   const setView = useAppStore((s) => s.setView)
   const role = user?.role
-  const isWorker = role === 'WORKER'
   const isCentral = !!role && !OUTSIDE_ROLES.includes(role)
+  const isSpecialist = !!role && SPECIALIST_ROLES.includes(role)
 
   const [qInput, setQInput] = useState('')
   const [q, setQ] = useState('')
@@ -44,6 +49,7 @@ export function CasesView() {
   const [contractorId, setContractorId] = useState('all')
   const [items, setItems] = useState<CaseListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [myOnly, setMyOnly] = useState(true) // فیلتر «فقط کارهای من» — پیش‌فرض روشن برای کارشناسان
   const [companies, setCompanies] = useState<OrgOption[]>([])
   const [contractors, setContractors] = useState<OrgOption[]>([])
 
@@ -90,7 +96,29 @@ export function CasesView() {
 
   const canCreate = role === 'ADMIN' || role === 'MANAGER'
 
-  const total = useMemo(() => items.length, [items])
+  // بخش‌هایی که نقش من ثبت‌کننده آن‌هاست (HSE→۳، اپتومتری→۷-الف، ادیولوژی→۷-ب، آزمایشگاه→۶/۷-ج/۷-د)
+  const mySectionKeys = useMemo(() => {
+    if (!role) return new Set<string>()
+    return new Set(SECTION_DEFS.filter((d) => d.editorRoles.includes(role)).map((d) => d.key as string))
+  }, [role])
+
+  // فهرست نمایش‌داده‌شده: در حالت «فقط کارهای من» پرونده‌هایی که کار باز برای من دارند
+  const visibleItems = useMemo(() => {
+    if (!isSpecialist || !myOnly) return items
+    return items.filter((it) =>
+      it.sections.some((s) => mySectionKeys.has(s.key) && PENDING_STATUSES.includes(s.status)),
+    )
+  }, [items, isSpecialist, myOnly, mySectionKeys])
+
+  // شمار کارهای باز برای من (نشان شمارنده)
+  const myPendingCount = useMemo(() => {
+    if (!isSpecialist) return 0
+    return items.filter((it) =>
+      it.sections.some((s) => mySectionKeys.has(s.key) && PENDING_STATUSES.includes(s.status)),
+    ).length
+  }, [items, isSpecialist, mySectionKeys])
+
+  const total = useMemo(() => visibleItems.length, [visibleItems])
 
   const printDraft = (it: CaseListItem) => !it.finalOpinion || it.finalOpinion === 'INCOMPLETE'
 
@@ -98,19 +126,35 @@ export function CasesView() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">{isWorker ? 'پرونده‌های من' : 'پرونده‌ها'}</h1>
+          <h1 className="text-xl font-bold">پرونده‌ها</h1>
           {!loading && (
             <p className="text-sm text-muted-foreground">
               {toFa(total)} پرونده {total > 0 ? 'یافت شد' : ''}
             </p>
           )}
         </div>
-        {canCreate && (
-          <Button onClick={() => setView('reception')} className="bg-teal-600 hover:bg-teal-700">
-            <Plus className="size-4" />
-            پذیرش جدید
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {isSpecialist && (
+            <Toggle
+              pressed={myOnly}
+              onPressedChange={(v) => setMyOnly(v)}
+              variant="outline"
+              size="sm"
+              aria-label="فقط کارهای من"
+              className="data-[state=on]:border-teal-300 data-[state=on]:bg-teal-50 data-[state=on]:text-teal-800"
+            >
+              <ListChecks className="size-4" />
+              فقط کارهای من
+              <Badge className="bg-teal-600 px-1.5 text-white hover:bg-teal-600">{toFa(myPendingCount)}</Badge>
+            </Toggle>
+          )}
+          {canCreate && (
+            <Button onClick={() => setView('reception')} className="bg-teal-600 hover:bg-teal-700">
+              <Plus className="size-4" />
+              پذیرش جدید
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* فیلترها */}
@@ -171,7 +215,7 @@ export function CasesView() {
               <TableHead>شاغل</TableHead>
               <TableHead>نوع معاینه</TableHead>
               <TableHead>محل کار / شغل</TableHead>
-              {!isWorker && <TableHead>شرکت / پیمانکار</TableHead>}
+              <TableHead>شرکت / پیمانکار</TableHead>
               <TableHead>تاریخ مراجعه</TableHead>
               <TableHead className="w-32">پیشرفت</TableHead>
               <TableHead>نظریه</TableHead>
@@ -182,14 +226,14 @@ export function CasesView() {
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={isWorker ? 8 : 9}>
+                  <TableCell colSpan={9}>
                     <Skeleton className="h-6 w-full" />
                   </TableCell>
                 </TableRow>
               ))
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isWorker ? 8 : 9}>
+                <TableCell colSpan={9}>
                   <div className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
                     <FolderOpen className="size-10 text-slate-300" />
                     <div className="text-sm">پرونده‌ای یافت نشد</div>
@@ -197,8 +241,18 @@ export function CasesView() {
                   </div>
                 </TableCell>
               </TableRow>
+            ) : visibleItems.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9}>
+                  <div className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
+                    <ListChecks className="size-10 text-slate-300" />
+                    <div className="text-sm">مورد بازی برای شما وجود ندارد</div>
+                    <div className="text-xs">برای مشاهده همه پرونده‌ها، فیلتر «فقط کارهای من» را خاموش کنید.</div>
+                  </div>
+                </TableCell>
+              </TableRow>
             ) : (
-              items.map((it) => (
+              visibleItems.map((it) => (
                 <TableRow
                   key={it.id}
                   className="cursor-pointer"
@@ -218,14 +272,12 @@ export function CasesView() {
                     <div className="text-sm">{it.workPlace}</div>
                     <div className="text-xs text-muted-foreground">{it.jobTitle}</div>
                   </TableCell>
-                  {!isWorker && (
-                    <TableCell>
+                  <TableCell>
                       <div className="text-sm">{it.company?.name || '—'}</div>
                       <div className="text-xs text-muted-foreground">
                         {it.contractor ? `${it.contractor.name} — ${GROUP_TYPE_LABELS[it.groupType] || ''}` : GROUP_TYPE_LABELS[it.groupType] || '—'}
                       </div>
                     </TableCell>
-                  )}
                   <TableCell className="text-sm">{toFa(it.visitDate)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -239,7 +291,7 @@ export function CasesView() {
                       <Button size="icon" variant="ghost" aria-label="مشاهده پرونده" onClick={() => openCase(it.id)}>
                         <Eye className="size-4" />
                       </Button>
-                      {(!isWorker || it.finalOpinion) && (
+                      { (
                         <Button
                           size="icon"
                           variant="ghost"

@@ -26,7 +26,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return body as T
 }
 
-export const apiGet = <T>(url: string): Promise<T> => request<T>(url)
+export const apiGet = <T>(url: string, options?: RequestInit): Promise<T> => request<T>(url, options)
 export const apiPost = <T>(url: string, data?: unknown): Promise<T> =>
   request<T>(url, { method: 'POST', body: data ? JSON.stringify(data) : undefined })
 export const apiPatch = <T>(url: string, data: unknown): Promise<T> =>
