@@ -1,9 +1,11 @@
 {
-  "name": "nextjs_tailwind_shadcn_ts",
+  "name": "ihms-ohe",
   "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "node scripts/dev-supervisor.js",
+    "postinstall": "prisma generate",
+    "db:seed": "npx tsx prisma/seed.ts",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",

@@ -1,4 +1,4 @@
-# سامانه مدیریت معاینات طب کار (IHMS-OHE)
+# IHMS-OHE — سامانه مدیریت معاینات طب کار
 
 سامانه جامع مدیریت پذیرش، معاینات پزشکی حرفه‌ای، گردش کار تأیید متخصصان و صدور گزارش نهایی طب کار — با رابط کاربری فارسی (RTL).
 
@@ -15,7 +15,7 @@
 
 ## 🛠 تکنولوژی‌ها
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · shadcn/ui · Prisma (SQLite) · Recharts · pptxgenjs
+Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · shadcn/ui · Prisma + Supabase (PostgreSQL) · Recharts · pptxgenjs
 
 ## 🚀 راه‌اندازی محلی (ویندوز / مک / لینوکس)
 
@@ -40,27 +40,27 @@ npm run dev
 
 > 🔐 اطلاعات ورود (نام کاربری و رمز عبور کاربران) به‌صورت محرمانه نزد مدیر سامانه است و در این مخزن عمومی منتشر نمی‌شود.
 
-### تنظیمات دیتابیس
+### دیتابیس: Supabase (PostgreSQL)
 
-دیتابیس SQLite در مسیر `db/custom.db` قرار دارد و فایل `.env` به‌صورت پیش‌فرض به آن اشاره می‌کند:
+1. در [Supabase](https://supabase.com) یک پروژه بسازید.
+2. فایل `.env.example` را به `.env` کپی کنید و `DATABASE_URL` و `DIRECT_URL` را از *Project Settings → Database → Connection string* پر کنید. `AUTH_SECRET` هم الزامی است (`openssl rand -hex 32`).
+3. جدول‌ها را بسازید، یکی از دو راه:
+   - فایل `supabase/migrations/20261019000000_init.sql` را در *SQL Editor* اجرا کنید (همراه با فعال‌سازی RLS)، یا
+   - `npm run db:push`
+4. کاربران اولیه: `npm run db:seed` (رمزها تصادفی‌اند و در `db/demo-credentials.json` ذخیره می‌شوند، نه در گیت).
+5. اجرا: `npm run dev`
 
-```
-DATABASE_URL=file:../db/custom.db
-```
+برنامه فقط از سمت سرور به دیتابیس وصل می‌شود؛ RLS روی همه جدول‌ها فعال و بدون policy است تا API عمومی Supabase (کلید anon) به داده‌ها دسترسی نداشته باشد.
 
-این مسیر **نسبی** است و روی هر سیستمی (ویندوز/مک/لینوکس) بدون تغییر کار می‌کند.
+### استقرار (Vercel)
 
-برای اعمال تغییرات اسکما روی دیتابیس:
-
-```bash
-npm run db:push
-```
+مخزن را در Vercel وارد کنید و متغیرهای `DATABASE_URL`، `DIRECT_URL` و `AUTH_SECRET` را تنظیم کنید. سپس یک زیردامنه (مثلاً `ohe.ihmsapp.ir`) به آن وصل کنید.
 
 ## 📁 ساختار پروژه
 
 ```
 ├── prisma/                 # اسکیمای دیتابیس + seed
-├── db/                     # فایل دیتابیس SQLite
+├── supabase/migrations/    # اسکریپت SQL ساخت جدول‌ها
 ├── public/fonts/           # فونت وزیرمتن (self-host)
 ├── scripts/                # ناظر اجرای سرور توسعه (چندسکویی)
 └── src/

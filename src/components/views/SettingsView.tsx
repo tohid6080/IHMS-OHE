@@ -102,7 +102,7 @@ export function SettingsView() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `backup-${new Date().toISOString().slice(0, 10)}.db`
+      a.download = `backup-${new Date().toISOString().slice(0, 10)}.json`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -175,7 +175,7 @@ export function SettingsView() {
                 دانلود نسخه پشتیبان پایگاه داده
               </Button>
               <p className="mt-3 text-[11px] leading-5 text-muted-foreground">
-                فایل پشتیبان با فرمت <span className="font-mono" dir="ltr">.db</span> (SQLite) است؛ برای بازگردانی، فایل را جایگزین پایگاه داده سرور کنید.
+                فایل پشتیبان با فرمت <span className="font-mono" dir="ltr">.json</span> است. پشتیبان‌گیری خودکار پایگاه داده را Supabase انجام می‌دهد.
               </p>
             </CardContent>
           </Card>

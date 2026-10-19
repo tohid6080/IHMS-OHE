@@ -65,9 +65,9 @@ export async function GET(req: NextRequest) {
 
     const parts = q.split(/\s+/).filter(Boolean)
     const or: Prisma.PersonWhereInput[] = [
-      { nationalId: { contains: q } },
-      { firstName: { contains: q } },
-      { lastName: { contains: q } },
+      { nationalId: { contains: q, mode: 'insensitive' } },
+      { firstName: { contains: q, mode: 'insensitive' } },
+      { lastName: { contains: q, mode: 'insensitive' } },
     ]
     // جست‌وجوی «نام و نام خانوادگی» با هم (هر دو ترتیب)
     if (parts.length > 1) {

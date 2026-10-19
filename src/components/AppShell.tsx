@@ -4,6 +4,9 @@ import { useState } from 'react'
 import {
   BarChart3,
   Building2,
+  ChevronDown,
+  LayoutGrid,
+  Stethoscope,
   FolderOpen,
   HeartPulse,
   LayoutDashboard,
@@ -51,6 +54,11 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['ADMIN', 'MANAGER', 'EMPLOYER', 'CONTRACTOR'],
   },
   { key: 'settings', label: 'تنظیمات', icon: Settings, roles: ['ADMIN', 'MANAGER'] },
+]
+
+// برنامه‌های سامانه (IHMS) — برای افزودن برنامه جدید یک مورد به این فهرست اضافه کنید
+const OTHER_APPS: { label: string; icon: LucideIcon; href?: string; current?: boolean }[] = [
+  { label: 'مدیریت معاینات طب کار', icon: Stethoscope, current: true },
 ]
 
 function visibleItems(role: Role | undefined): { key: ViewKey; label: string; icon: LucideIcon }[] {
@@ -145,8 +153,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <SheetContent side="right" className="w-64 p-0 bg-sidebar">
                 <SheetHeader className="border-b bg-primary text-primary-foreground rounded-none">
                   <SheetTitle className="flex items-center gap-2 text-sm">
-                    <HeartPulse className="size-4" />
-                    سامانه مدیریت معاینات طب کار
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/ihms-logo.svg" alt="IHMS" className="size-6 rounded" />
+                    <span dir="ltr">IHMS-OHE</span>
                   </SheetTitle>
                 </SheetHeader>
                 <NavList items={items} view={view} go={go} onNavigate={() => setMobileOpen(false)} />
@@ -156,14 +165,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* عنوان سامانه */}
           <div className="flex items-center gap-2 min-w-0">
-            <HeartPulse className="size-5 shrink-0" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ihms-logo.svg" alt="IHMS" className="size-8 shrink-0 rounded-md" />
             <div className="min-w-0 leading-tight">
-              <div className="text-sm font-bold truncate">سامانه مدیریت معاینات طب کار</div>
+              <div className="text-sm font-bold truncate" dir="ltr">IHMS-OHE</div>
               <div className="hidden sm:block text-[11px] text-primary-foreground/70">
-                مرکز طب کار مهرگان
+                سامانه مدیریت معاینات طب کار
               </div>
             </div>
           </div>
+
+          {/* منوی بالایی: برنامه‌های دیگر */}
+          <DropdownMenu dir="rtl">
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium hover:bg-primary-foreground/15 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
+              >
+                <LayoutGrid className="size-4" />
+                <span>برنامه‌های دیگر</span>
+                <ChevronDown className="size-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>برنامه‌های دیگر</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {OTHER_APPS.map((app) => (
+                <DropdownMenuItem
+                  key={app.label}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    if (app.current) go('dashboard')
+                    else if (app.href) window.location.href = app.href
+                  }}
+                >
+                  <app.icon className="size-4" />
+                  <span>{app.label}</span>
+                  {app.current && <span className="mr-auto text-[10px] text-muted-foreground">فعلی</span>}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* چپ: پروفایل کاربر */}
           <div className="mr-auto flex items-center">
@@ -215,7 +257,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="hidden lg:flex fixed right-0 top-14 bottom-10 w-56 bg-sidebar border-l flex-col overflow-y-auto scrollbar-thin z-30">
         <NavList items={items} view={view} go={go} />
         <div className="mt-auto p-4 text-[10px] text-muted-foreground text-center">
-          نسخه ۱.۰ © مرکز طب کار مهرگان
+          IHMS-OHE © مرکز طب کار مهرگان
         </div>
       </aside>
 
@@ -227,7 +269,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ─── فوتر ثابت پایین ─── */}
       <footer className="h-10 fixed bottom-0 left-0 right-0 lg:right-56 z-30 bg-card border-t text-xs text-muted-foreground flex items-center justify-center gap-2">
         <HeartPulse className="size-3.5 text-teal-600" />
-        سامانه مدیریت معاینات طب کار — نسخه ۱.۰
+        IHMS-OHE — سامانه مدیریت معاینات طب کار
       </footer>
     </div>
   )

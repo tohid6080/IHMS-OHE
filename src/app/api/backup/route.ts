@@ -1,27 +1,33 @@
-import { readFile } from 'fs/promises'
-import { resolve, isAbsolute } from 'path'
 import { db } from '@/lib/db'
-import { requireRole, errorResponse, HttpError } from '@/lib/auth'
+import { requireRole, errorResponse } from '@/lib/auth'
 
-// GET /api/backup — دانلود فایل دیتابیس (فقط ADMIN)
+// GET /api/backup — دانلود نسخه JSON از تمام داده‌ها (فقط ADMIN)
+// پشتیبان‌گیری خودکار دیتابیس را خود Supabase انجام می‌دهد؛ این خروجی نسخه دستی است.
 export async function GET() {
   try {
     await requireRole('ADMIN')
 
-    const url = process.env.DATABASE_URL || ''
-    let dbPath = url.replace(/^file:/, '').trim()
-    if (!dbPath) throw new HttpError(500, 'مسیر دیتابیس تنظیم نشده است')
-    // مسیر نسبی مثل file:../db/custom.db نسبت به پوشه prisma (مطابق رفتار Prisma) حل می‌شود
-    if (!isAbsolute(dbPath)) dbPath = resolve(process.cwd(), 'prisma', dbPath)
+    const [companies, contractors, projects, persons, users, cases, caseSections, caseHistory] = await Promise.all([
+      db.company.findMany(),
+      db.contractor.findMany(),
+      db.project.findMany(),
+      db.person.findMany(),
+      db.user.findMany({ omit: { password: true } }),
+      db.case.findMany(),
+      db.caseSection.findMany(),
+      db.caseHistory.findMany(),
+    ])
 
-    const [buf, cases, users] = await Promise.all([readFile(dbPath), db.case.count(), db.user.count()])
-
-    const info = JSON.stringify({ exportedAt: new Date().toISOString(), cases, users })
-    return new Response(new Uint8Array(buf), {
+    const body = JSON.stringify(
+      { exportedAt: new Date().toISOString(), companies, contractors, projects, persons, users, cases, caseSections, caseHistory },
+      null,
+      2,
+    )
+    return new Response(body, {
       headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="backup-${Date.now()}.db"`,
-        'X-Backup-Info': info,
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="backup-${Date.now()}.json"`,
+        'X-Backup-Info': JSON.stringify({ cases: cases.length, users: users.length }),
       },
     })
   } catch (e) {

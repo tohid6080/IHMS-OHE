@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { HeartPulse, Loader2, LogIn } from 'lucide-react'
+import { Loader2, LogIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiPost, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
@@ -62,12 +62,12 @@ export function LoginView() {
       {/* کارت شیشه‌ای ورود */}
       <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white/90 backdrop-blur-xl shadow-2xl border border-white/40 p-6">
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-teal-600 to-emerald-600 text-white shadow-lg shadow-teal-900/20">
-            <HeartPulse className="size-8" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/ihms-logo.svg" alt="IHMS" className="size-20 rounded-2xl shadow-lg shadow-teal-900/20" />
           <div>
-            <h1 className="text-lg font-bold text-teal-950">سامانه مدیریت معاینات طب کار</h1>
-            <p className="mt-1 text-xs text-slate-500">نرم‌افزار مدیریت پرونده‌های سلامت شغلی</p>
+            <h1 className="text-xl font-bold text-teal-950" dir="ltr">IHMS-OHE</h1>
+            <p className="mt-1 text-sm text-teal-900">سامانه مدیریت معاینات طب کار</p>
+            <p className="mt-0.5 text-xs text-slate-500">نرم‌افزار مدیریت پرونده‌های سلامت شغلی</p>
           </div>
         </div>
 
@@ -107,7 +107,7 @@ export function LoginView() {
       </div>
 
       <p className="relative z-10 mt-6 text-xs text-teal-200/70">
-        نسخه ۱.۰ © مرکز طب کار مهرگان
+        IHMS-OHE © مرکز طب کار مهرگان
       </p>
     </div>
   )
