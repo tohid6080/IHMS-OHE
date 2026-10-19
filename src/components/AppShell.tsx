@@ -4,6 +4,9 @@ import { useState } from 'react'
 import {
   BarChart3,
   Building2,
+  ChevronDown,
+  LayoutGrid,
+  Stethoscope,
   FolderOpen,
   HeartPulse,
   LayoutDashboard,
@@ -51,6 +54,11 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['ADMIN', 'MANAGER', 'EMPLOYER', 'CONTRACTOR'],
   },
   { key: 'settings', label: 'تنظیمات', icon: Settings, roles: ['ADMIN', 'MANAGER'] },
+]
+
+// برنامه‌های سامانه (IHMS) — برای افزودن برنامه جدید یک مورد به این فهرست اضافه کنید
+const OTHER_APPS: { label: string; icon: LucideIcon; href?: string; current?: boolean }[] = [
+  { label: 'مدیریت معاینات طب کار', icon: Stethoscope, current: true },
 ]
 
 function visibleItems(role: Role | undefined): { key: ViewKey; label: string; icon: LucideIcon }[] {
@@ -164,6 +172,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </div>
+
+          {/* منوی بالایی: برنامه‌های دیگر */}
+          <DropdownMenu dir="rtl">
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium hover:bg-primary-foreground/15 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
+              >
+                <LayoutGrid className="size-4" />
+                <span>برنامه‌های دیگر</span>
+                <ChevronDown className="size-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>برنامه‌های دیگر</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {OTHER_APPS.map((app) => (
+                <DropdownMenuItem
+                  key={app.label}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    if (app.current) go('dashboard')
+                    else if (app.href) window.location.href = app.href
+                  }}
+                >
+                  <app.icon className="size-4" />
+                  <span>{app.label}</span>
+                  {app.current && <span className="mr-auto text-[10px] text-muted-foreground">فعلی</span>}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* چپ: پروفایل کاربر */}
           <div className="mr-auto flex items-center">
