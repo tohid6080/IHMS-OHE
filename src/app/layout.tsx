@@ -17,10 +17,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
-      <head>
-        {/* فونت وزیرمتن به‌صورت self-host در globals.css تعریف شده است — بدون درخواست خارجی */}
-        <style>{`:root { --font-vazir: 'Vazirmatn'; }`}</style>
-      </head>
       <body className="antialiased bg-background text-foreground">
         {children}
         <Toaster position="bottom-left" richColors dir="rtl" />

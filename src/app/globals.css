@@ -40,6 +40,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* متغیر فونت وزیرمتن — پیش‌تر در layout.tsx به‌صورت style درون‌خطی بود که
+   باعث خطای hydration می‌شد؛ اکنون در همین‌جا تعریف می‌شود */
+:root {
+  --font-vazir: 'Vazirmatn';
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
