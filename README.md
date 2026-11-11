@@ -56,9 +56,16 @@ npm run dev
 
 در صفحه مخزن: **Code → Codespaces → Create codespace on main**. دیتابیس Postgres، ساخت جدول‌ها و seed خودکار انجام می‌شود و صفحه ورود روی پورت 3000 باز می‌شود. نام‌کاربری‌ها و رمزها در `db/demo-credentials.json` است. (این حالت فقط برای آزمایش است و برای استفاده واقعی از Supabase استفاده کنید.)
 
-### استقرار (Vercel)
+### استقرار (Vercel) و اتصال به منوی پورتال ihmsapp.ir
 
-مخزن را در Vercel وارد کنید و متغیرهای `DATABASE_URL`، `DIRECT_URL` و `AUTH_SECRET` را تنظیم کنید. سپس یک زیردامنه (مثلاً `ohe.ihmsapp.ir`) به آن وصل کنید.
+لینک «مدیریت معاینات طب کار» در منوی «برنامه‌های دیگر» پورتال `ihmsapp.ir` به `https://ohe.ihmsapp.ir/` اشاره می‌کند. برای فعال شدن آن:
+
+1. **Vercel**: مخزن `IHMS-OHE` را import کنید و متغیرهای `DATABASE_URL` (کانکشن pooler پورت 6543)، `DIRECT_URL` (پورت 5432) و `AUTH_SECRET` را تنظیم کنید.
+2. **Vercel → Settings → Domains**: دامنه `ohe.ihmsapp.ir` را به پروژه اضافه کنید.
+3. **Cloudflare (DNS دامنه ihmsapp.ir همین‌جاست)**: رکورد `CNAME` با نام `ohe` و مقدار `cname.vercel-dns.com` اضافه کنید (حالت DNS only / ابر خاکستری تا گواهی TLS را Vercel صادر کند).
+4. مخزن پورتال (`anomaly-app-20260904-v5`) پس از push خودکار بازسازی می‌شود؛ لینک منو همین حالا به زیردامنه اشاره می‌کند.
+
+گزینه جایگزین: سرو اپ زیر مسیر `ihmsapp.ir/ohe/` با پروکسی (Cloudflare Worker یا Origin Rule) — در این حالت هنگام build متغیر `NEXT_PUBLIC_BASE_PATH=/ohe` را ست کنید (پشتیبانی در next.config.ts موجود است).
 
 ## 📁 ساختار پروژه
 
