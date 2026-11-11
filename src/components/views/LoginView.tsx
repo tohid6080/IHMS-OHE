@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { HeartPulse, Loader2, LogIn } from 'lucide-react'
+import { ChevronDown, ChevronUp, Copy, HeartPulse, KeyRound, Loader2, LogIn, TriangleAlert, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiPost, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
@@ -9,8 +9,8 @@ import type { SessionUser } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-// کاربران سامانه — نام‌های کاربری؛ رمزها محرمانه است و در کد/مخزن قرار نمی‌گیرد
+// DEMO-CREDENTIALS: بخش موقت — حذف همراه با فایل src/lib/demo-credentials.ts
+import { DEMO_ACCOUNTS } from '@/lib/demo-credentials'
 
 export function LoginView() {
   const setUser = useAppStore((s) => s.setUser)
@@ -20,6 +20,16 @@ export function LoginView() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [quickLoading, setQuickLoading] = useState<string | null>(null)
+  const [showAccounts, setShowAccounts] = useState(true) // DEMO-CREDENTIALS: موقت
+
+  async function login(username: string, password: string) {
+    const res = await apiPost<{ user: SessionUser }>('/api/auth/login', { username, password })
+    setUser(res.user)
+    setAuthChecked(true)
+    toast.success(`خوش آمدید ${res.user.fullName}`)
+    setView('dashboard')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -29,18 +39,33 @@ export function LoginView() {
     }
     setLoading(true)
     try {
-      const res = await apiPost<{ user: SessionUser }>('/api/auth/login', {
-        username: username.trim(),
-        password,
-      })
-      setUser(res.user)
-      setAuthChecked(true)
-      toast.success(`خوش آمدید ${res.user.fullName}`)
-      setView('dashboard')
+      await login(username.trim(), password)
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'خطا در برقراری ارتباط با سرور')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // DEMO-CREDENTIALS: ورود سریع با یک کلیک — موقت
+  async function handleQuickLogin(acc: (typeof DEMO_ACCOUNTS)[number]) {
+    setQuickLoading(acc.username)
+    try {
+      await login(acc.username, acc.password)
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'خطا در برقراری ارتباط با سرور')
+    } finally {
+      setQuickLoading(null)
+    }
+  }
+
+  // DEMO-CREDENTIALS: کپی رمز — موقت
+  async function handleCopy(acc: (typeof DEMO_ACCOUNTS)[number]) {
+    try {
+      await navigator.clipboard.writeText(`${acc.username} / ${acc.password}`)
+      toast.success('نام کاربری و رمز کپی شد')
+    } catch {
+      toast.error('کپی انجام نشد')
     }
   }
 
@@ -82,7 +107,7 @@ export function LoginView() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
+              disabled={loading || quickLoading !== null}
             />
           </div>
           <div className="space-y-1.5">
@@ -96,14 +121,87 @@ export function LoginView() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
+              disabled={loading || quickLoading !== null}
             />
           </div>
-          <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={loading}>
+          <Button type="submit" className="w-full bg-teal-700 hover:bg-teal-800" disabled={loading || quickLoading !== null}>
             {loading ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />}
             {loading ? 'در حال ورود…' : 'ورود'}
           </Button>
         </form>
+
+        {/* DEMO-CREDENTIALS: فهرست موقت حساب‌های آزمایشی — بعداً حذف می‌شود */}
+        <div className="mt-5 rounded-xl border border-amber-300/70 bg-amber-50/80 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowAccounts((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100/70 transition-colors"
+            aria-expanded={showAccounts}
+            aria-controls="demo-accounts-list"
+          >
+            <span className="flex items-center gap-2">
+              <KeyRound className="size-4" />
+              حساب‌های آزمایشی (نام کاربری و رمز)
+            </span>
+            {showAccounts ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          </button>
+
+          {showAccounts && (
+            <div id="demo-accounts-list" role="region" aria-label="حساب‌های آزمایشی" className="px-3 pb-3 space-y-2">
+              <p className="flex items-start gap-1.5 text-[11px] leading-5 text-amber-800 bg-amber-100/80 rounded-lg px-2 py-1.5">
+                <TriangleAlert className="size-3.5 mt-0.5 shrink-0" />
+                این فهرست فقط برای دوره راه‌اندازی است و به‌زودی از سامانه حذف می‌شود.
+              </p>
+              <div className="max-h-72 overflow-y-auto scrollbar-thin space-y-1.5 pl-1">
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <div
+                    key={acc.username}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-white px-2.5 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                        <UserRound className="size-3.5 text-teal-700 shrink-0" />
+                        <span className="truncate">{acc.roleLabel}</span>
+                        <span className="truncate font-normal text-slate-400">— {acc.fullName}</span>
+                      </div>
+                      <div dir="ltr" className="mt-0.5 flex items-center gap-1 text-left text-[11px] font-mono text-slate-600">
+                        <span className="truncate">{acc.username}</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="truncate">{acc.password}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-slate-500 hover:text-teal-700 hover:bg-teal-50"
+                        onClick={() => handleCopy(acc)}
+                        aria-label={`کپی نام کاربری و رمز ${acc.roleLabel}`}
+                        title="کپی"
+                        disabled={quickLoading !== null}
+                      >
+                        <Copy className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-8 px-2.5 text-xs bg-teal-700 hover:bg-teal-800"
+                        onClick={() => handleQuickLogin(acc)}
+                        aria-label={`ورود سریع با حساب ${acc.roleLabel}`}
+                        title="ورود سریع"
+                        disabled={quickLoading !== null || loading}
+                      >
+                        {quickLoading === acc.username ? <Loader2 className="size-3.5 animate-spin" /> : <LogIn className="size-3.5" />}
+                        ورود
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <p className="relative z-10 mt-6 text-xs text-teal-200/70">
