@@ -4,7 +4,19 @@ import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import type { Role, SessionUser } from './types'
 
-const SECRET = new TextEncoder().encode(process.env.AUTH_SECRET || 'hoyateb-occupational-health-secret-2024')
+// کلید امضای نشست: در محیط production تنظیم AUTH_SECRET الزامی است (کلید پیش‌فرض عمومی نیست)
+let cachedSecret: Uint8Array | null = null
+function getSecret(): Uint8Array {
+  if (cachedSecret) return cachedSecret
+  const value = process.env.AUTH_SECRET
+  if (!value && process.env.NODE_ENV === 'production') {
+    throw new Error('AUTH_SECRET باید در محیط production تنظیم شود')
+  }
+  cachedSecret = new TextEncoder().encode(value || 'ihms-ohe-dev-only-secret')
+  return cachedSecret
+}
+// کوکی فقط روی HTTPS ارسال شود (برای HTTP محلی: COOKIE_SECURE=false)
+export const COOKIE_SECURE = process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== 'false'
 export const SESSION_COOKIE = 'hoyateb_session'
 
 export async function hashPassword(pw: string): Promise<string> {
@@ -19,12 +31,12 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(SECRET)
+    .sign(getSecret())
 }
 
 export async function readSessionToken(token: string): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET)
+    const { payload } = await jwtVerify(token, getSecret())
     if (!payload || !payload.id) return null
     return {
       id: String(payload.id),

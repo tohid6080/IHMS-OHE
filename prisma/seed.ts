@@ -1,7 +1,7 @@
 // سید داده اولیه سامانه — اجرا: bun prisma/seed.ts  (یا: npx tsx prisma/seed.ts)
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { randomBytes } from 'crypto'
 import path from 'path'
 
@@ -19,6 +19,7 @@ function loadPasswords(): Record<string, string> {
   }
   const passwords: Record<string, string> = {}
   for (const u of SEED_USERS) passwords[u] = randomBytes(6).toString('hex')
+  mkdirSync(path.dirname(credFile), { recursive: true })
   writeFileSync(credFile, JSON.stringify(passwords, null, 2), 'utf8')
   console.log('🔐 رمزهای تصادفی ساخته شد و در db/demo-credentials.json ذخیره شد (این فایل در مخزن قرار نمی‌گیرد)')
   return passwords

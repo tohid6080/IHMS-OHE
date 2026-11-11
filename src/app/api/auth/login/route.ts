@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyPassword, createSessionToken, SESSION_COOKIE, errorResponse, HttpError } from '@/lib/auth'
+import { verifyPassword, createSessionToken, SESSION_COOKIE, COOKIE_SECURE, errorResponse, HttpError } from '@/lib/auth'
 import type { SessionUser } from '@/lib/types'
 
 // POST /api/auth/login — ورود با نام کاربری و رمز عبور
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       sameSite: 'lax',
+      secure: COOKIE_SECURE,
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
     })

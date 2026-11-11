@@ -117,10 +117,10 @@ export async function GET(req: NextRequest) {
     if (q) {
       and.push({
         OR: [
-          { caseNumber: { contains: q } },
-          { person: { firstName: { contains: q } } },
-          { person: { lastName: { contains: q } } },
-          { person: { nationalId: { contains: q } } },
+          { caseNumber: { contains: q, mode: 'insensitive' } },
+          { person: { firstName: { contains: q, mode: 'insensitive' } } },
+          { person: { lastName: { contains: q, mode: 'insensitive' } } },
+          { person: { nationalId: { contains: q, mode: 'insensitive' } } },
         ],
       })
     }

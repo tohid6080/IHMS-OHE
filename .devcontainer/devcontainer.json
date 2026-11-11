@@ -1,0 +1,12 @@
+{
+  "name": "IHMS-OHE",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/IHMS-OHE",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "IHMS-OHE", "onAutoForward": "openBrowser" }
+  },
+  "postCreateCommand": "npm install && npx prisma db push --skip-generate && npm run db:seed && echo '--- نام‌های کاربری/رمزها: db/demo-credentials.json ---'",
+  "postStartCommand": "nohup npx next dev -p 3000 > /tmp/next-dev.log 2>&1 &"
+}

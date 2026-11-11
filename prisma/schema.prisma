@@ -3,8 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Supabase: DATABASE_URL = Connection pooler (پورت 6543، با ?pgbouncer=true)؛ DIRECT_URL = اتصال مستقیم (پورت 5432) برای مهاجرت
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // نقش‌ها: ADMIN | MANAGER | HSE | DOCTOR | AUDIOLOGIST | OPTOMETRIST | LAB | EMPLOYER | CONTRACTOR
